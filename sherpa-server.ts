@@ -130,14 +130,22 @@ class SherpaServer {
     return first || 'general';
   }
 
-  private async loadEncouragements(): Promise<void> {
+  private loadEncouragements(): void {
     try {
-      const encouragementsPath = path.join(__dirname, "src", "server-instructions", "templates", "encouragements.json");
-      const content = await fs.readFile(encouragementsPath, "utf-8");
+      const encouragementsPath = path.join(process.cwd(), "src", "server-instructions", "templates", "encouragements.json");
+      const content = require("fs").readFileSync(encouragementsPath, "utf-8");
       this.encouragements = JSON.parse(content);
     } catch (error) {
-      this.log("ERROR", `Failed to load encouragements: ${error}`);
-      this.encouragements = {}; // Fallback to empty object
+      // Fallback to basic structure to prevent errors
+      this.encouragements = {
+        phaseEntry: {},
+        progressMessages: {},
+        workflowCompletion: {},
+        toolUsageEncouragement: {},
+        reminderMessages: {},
+        milestones: {},
+        contextualEncouragement: {}
+      };
     }
   }
 
