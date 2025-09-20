@@ -1,0 +1,33 @@
+name: "Rapid Prototyping"
+description: "Quick iteration for spikes and experiments"
+trigger_hints:
+  - "prototype"
+  - "spike"
+  - "quick"
+  - "demo"
+  - "poc"
+  - "experiment"
+phases:
+  - name: "🚀 Explore"
+    guidance: "Move fast, learn quickly"
+    suggestions:
+      - "Start with the core idea"
+      - "Write working code first"
+      - "Don't worry about perfection"
+      - "Focus on proving the concept"
+      
+  - name: "📝 Document Learning"
+    guidance: "Capture what you discovered"
+    suggestions:
+      - "What worked?"
+      - "What didn't work?"
+      - "What surprised you?"
+      - "What would you do differently?"
+      
+  - name: "🧪 Retroactive Tests"
+    guidance: "Now add tests for the parts you'll keep"
+    suggestions:
+      - "Test the successful patterns"
+      - "Add tests before refactoring"
+      - "Document edge cases you found"
+      - "Prepare for production implementation"

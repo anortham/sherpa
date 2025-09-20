@@ -1,0 +1,48 @@
+name: "Code Review"
+description: "Thorough code review workflow for quality and maintainability"
+trigger_hints:
+  - "review"
+  - "pr"
+  - "pull request"
+  - "merge"
+  - "quality"
+phases:
+  - name: "🔍 Initial Review"
+    guidance: "High-level assessment of the changes"
+    suggestions:
+      - "Read the PR description and requirements"
+      - "Understand the problem being solved"
+      - "Review the overall approach"
+      - "Check if tests are included"
+
+  - name: "🏗️ Architecture & Design"
+    guidance: "Evaluate structural decisions"
+    suggestions:
+      - "Check if code follows existing patterns"
+      - "Review new abstractions and interfaces"
+      - "Verify separation of concerns"
+      - "Consider impact on system complexity"
+
+  - name: "💻 Code Quality Check"
+    guidance: "Detailed line-by-line review"
+    suggestions:
+      - "Check for code style consistency"
+      - "Look for potential bugs or edge cases"
+      - "Verify error handling"
+      - "Review variable naming and clarity"
+
+  - name: "🧪 Test Coverage Review"
+    guidance: "Ensure adequate testing"
+    suggestions:
+      - "Verify tests cover main functionality"
+      - "Check for edge case testing"
+      - "Review test clarity and maintainability"
+      - "Ensure tests actually test the right things"
+
+  - name: "📋 Final Assessment"
+    guidance: "Comprehensive evaluation"
+    suggestions:
+      - "Summarize main concerns"
+      - "Verify all feedback is actionable"
+      - "Consider security implications"
+      - "Check documentation updates needed"

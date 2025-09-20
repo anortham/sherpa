@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build outputs
+dist/
+build/
+
+# Optional: User's custom workflows (if you want to ignore local customizations)
+# .sherpa/*.local.yaml

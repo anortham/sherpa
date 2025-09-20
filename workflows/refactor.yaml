@@ -1,0 +1,40 @@
+name: "Safe Refactoring"
+description: "Refactor with confidence using tests as your safety net"
+trigger_hints:
+  - "refactor"
+  - "cleanup"
+  - "improve"
+  - "optimize"
+  - "restructure"
+phases:
+  - name: "🧪 Test Coverage Check"
+    guidance: "Can't refactor safely without tests"
+    suggestions:
+      - "Verify existing test coverage"
+      - "Add tests for uncovered code"
+      - "Run all tests - establish baseline"
+      - "Save current test output for comparison"
+      
+  - name: "📐 Identify Patterns"
+    guidance: "What needs to change and why"
+    suggestions:
+      - "Identify code smells"
+      - "Find duplicated logic"
+      - "Note confusing names or structures"
+      - "Plan refactoring strategy"
+      
+  - name: "♻️ Incremental Changes"
+    guidance: "Small steps, test after each"
+    suggestions:
+      - "One refactor at a time"
+      - "Run tests after EACH change"
+      - "Commit working states"
+      - "Use your IDE's refactoring tools"
+      
+  - name: "✅ Verify Behavior"
+    guidance: "Same behavior, better code"
+    suggestions:
+      - "All tests still passing?"
+      - "Performance still acceptable?"
+      - "No new warnings/errors?"
+      - "Code easier to understand?"

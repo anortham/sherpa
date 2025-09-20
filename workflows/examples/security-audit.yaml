@@ -1,0 +1,49 @@
+name: "Security Audit"
+description: "Systematic security review for defensive security analysis"
+trigger_hints:
+  - "security"
+  - "audit"
+  - "vulnerability"
+  - "auth"
+  - "authorization"
+  - "authentication"
+phases:
+  - name: "🔍 Input Validation Review"
+    guidance: "Check all data entry points"
+    suggestions:
+      - "Review form inputs and sanitization"
+      - "Check API parameter validation"
+      - "Verify file upload restrictions"
+      - "Test for injection vulnerabilities"
+
+  - name: "🔐 Authentication Analysis"
+    guidance: "Verify identity management is secure"
+    suggestions:
+      - "Review password policies"
+      - "Check session management"
+      - "Verify multi-factor authentication"
+      - "Test authentication bypass scenarios"
+
+  - name: "🛡️ Authorization Check"
+    guidance: "Ensure proper access controls"
+    suggestions:
+      - "Review role-based permissions"
+      - "Test privilege escalation scenarios"
+      - "Verify resource-level access controls"
+      - "Check for default or weak permissions"
+
+  - name: "🔒 Data Protection Review"
+    guidance: "Secure sensitive information"
+    suggestions:
+      - "Review data encryption at rest"
+      - "Check data encryption in transit"
+      - "Verify secure credential storage"
+      - "Test for data leakage scenarios"
+
+  - name: "📊 Generate Security Report"
+    guidance: "Document findings and recommendations"
+    suggestions:
+      - "Categorize vulnerabilities by severity"
+      - "Provide actionable remediation steps"
+      - "Include detection/monitoring recommendations"
+      - "Create security testing checklist"

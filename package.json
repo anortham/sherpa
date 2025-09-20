@@ -1,0 +1,48 @@
+{
+  "name": "sherpa-mcp",
+  "version": "1.0.0",
+  "description": "Workflow guidance MCP server for better AI-assisted development",
+  "main": "sherpa-server.ts",
+  "type": "module",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "start": "bun run sherpa-server.ts",
+    "dev": "bun run --watch sherpa-server.ts",
+    "setup": "bun run setup.ts",
+    "setup:force": "bun run setup.ts --force",
+    "reset": "bun run setup.ts reset",
+    "status": "bun run setup.ts status",
+    "logs": "tail -f ~/.sherpa/logs/sherpa-$(date +%Y-%m-%d).log",
+    "logs:latest": "ls -t ~/.sherpa/logs/sherpa-*.log | head -1 | xargs tail -f",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "postinstall": "bun run setup.ts"
+  },
+  "bin": {
+    "sherpa": "./setup.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "workflow",
+    "development",
+    "claude",
+    "tdd",
+    "testing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/sherpa-mcp.git"
+  },
+  "license": "MIT"
+}

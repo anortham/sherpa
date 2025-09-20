@@ -1,0 +1,49 @@
+name: "General Development"
+description: "Balanced workflow for most tasks - research, plan, test, implement"
+trigger_hints:
+  - "default"
+  - "general" 
+  - "feature"
+  - "implement"
+  - "add"
+  - "create"
+phases:
+  - name: "📚 Research"
+    guidance: "Don't guess - KNOW"
+    suggestions:
+      - "Read relevant documentation"
+      - "Check existing patterns in codebase"
+      - "Verify API signatures and types"
+      - "Look for similar implementations"
+      
+  - name: "📝 Plan"
+    guidance: "Explain before implementing"
+    suggestions:
+      - "Write out your approach"
+      - "Identify potential issues"
+      - "List assumptions to verify"
+      - "Consider alternative approaches"
+      
+  - name: "🧪 Test Setup"
+    guidance: "Tests guide implementation"
+    suggestions:
+      - "Write test structure first"
+      - "Define success criteria"
+      - "Include error cases"
+      - "Start with simplest test case"
+      
+  - name: "💻 Implement"
+    guidance: "Code with confidence"
+    suggestions:
+      - "Follow the plan"
+      - "Verify types as you go"
+      - "Run tests frequently"
+      - "Don't add untested features"
+      
+  - name: "✅ Verify"
+    guidance: "Make sure it actually works"
+    suggestions:
+      - "All tests passing?"
+      - "Manual testing for UX"
+      - "Check edge cases"
+      - "Update documentation if needed"

@@ -1,0 +1,50 @@
+name: "Performance Optimization"
+description: "Systematic approach to improving application performance"
+trigger_hints:
+  - "performance"
+  - "optimize"
+  - "slow"
+  - "speed"
+  - "memory"
+  - "cpu"
+  - "benchmark"
+phases:
+  - name: "📊 Baseline Measurement"
+    guidance: "Establish current performance metrics"
+    suggestions:
+      - "Run performance profiling tools"
+      - "Measure key user scenarios"
+      - "Document current response times"
+      - "Identify performance bottlenecks"
+
+  - name: "🎯 Identify Hotspots"
+    guidance: "Find the biggest impact opportunities"
+    suggestions:
+      - "Analyze CPU usage patterns"
+      - "Check memory allocation/deallocation"
+      - "Review database query performance"
+      - "Examine network request patterns"
+
+  - name: "🛠️ Implement Optimizations"
+    guidance: "Make targeted improvements"
+    suggestions:
+      - "Optimize critical path algorithms"
+      - "Add caching where appropriate"
+      - "Reduce unnecessary computations"
+      - "Improve data structure choices"
+
+  - name: "🧪 Benchmark Changes"
+    guidance: "Verify improvements"
+    suggestions:
+      - "Run same performance tests"
+      - "Compare before/after metrics"
+      - "Test with realistic data volumes"
+      - "Verify no regressions introduced"
+
+  - name: "📈 Monitor & Document"
+    guidance: "Ensure sustained performance"
+    suggestions:
+      - "Set up performance monitoring"
+      - "Document optimization techniques used"
+      - "Create performance testing suite"
+      - "Plan for future optimization cycles"

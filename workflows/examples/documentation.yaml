@@ -1,0 +1,49 @@
+name: "Documentation Deep Dive"
+description: "Comprehensive documentation workflow for APIs, components, and guides"
+trigger_hints:
+  - "document"
+  - "docs"
+  - "readme"
+  - "api"
+  - "guide"
+  - "tutorial"
+phases:
+  - name: "📚 Audit Existing Docs"
+    guidance: "Understanding what's already documented"
+    suggestions:
+      - "Review existing documentation files"
+      - "Check for outdated information"
+      - "Identify gaps in coverage"
+      - "Note inconsistent formatting or style"
+
+  - name: "👥 Define Audience"
+    guidance: "Know who you're writing for"
+    suggestions:
+      - "Identify the primary users"
+      - "Consider experience levels"
+      - "Note specific use cases"
+      - "Define success criteria"
+
+  - name: "📝 Structure Content"
+    guidance: "Organize information logically"
+    suggestions:
+      - "Create outline or table of contents"
+      - "Group related concepts"
+      - "Plan progressive disclosure"
+      - "Consider multiple entry points"
+
+  - name: "✍️ Write Content"
+    guidance: "Clear, actionable documentation"
+    suggestions:
+      - "Start with concrete examples"
+      - "Use consistent terminology"
+      - "Include working code samples"
+      - "Add troubleshooting sections"
+
+  - name: "🧪 Test Documentation"
+    guidance: "Verify docs actually work"
+    suggestions:
+      - "Follow your own instructions"
+      - "Test all code examples"
+      - "Check links and references"
+      - "Get feedback from target users"

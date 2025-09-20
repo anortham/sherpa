@@ -1,0 +1,41 @@
+name: "Test-First TDD"
+description: "Pure test-driven development - write tests before any implementation"
+trigger_hints: 
+  - "extractor"
+  - "parser"
+  - "transformer"
+  - "new feature"
+  - "type"
+  - "types"
+phases:
+  - name: "📋 Define Contract"
+    guidance: "Define what success looks like BEFORE coding"
+    suggestions:
+      - "Write interface/type definitions first"
+      - "Create test file with empty test cases"
+      - "Add test descriptions for every edge case"
+      - "Consider error conditions and boundaries"
+      
+  - name: "🧪 Implement Tests"
+    guidance: "Tests are your specification - make them thorough"
+    suggestions:
+      - "Write all tests BEFORE any implementation"
+      - "Include edge cases and error conditions"
+      - "Run tests - they should all fail (red phase)"
+      - "Each test should test ONE thing"
+      
+  - name: "💻 Minimal Implementation"
+    guidance: "Write ONLY enough code to pass tests"
+    suggestions:
+      - "No extra features not covered by tests"
+      - "Keep it simple - refactor later"
+      - "All tests must pass before moving on"
+      - "Resist the urge to over-engineer"
+      
+  - name: "♻️ Refactor"
+    guidance: "Now make it clean"
+    suggestions:
+      - "Improve code clarity"
+      - "Extract common patterns"
+      - "Tests still passing? Good!"
+      - "Consider performance if needed"

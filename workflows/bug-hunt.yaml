@@ -1,0 +1,34 @@
+name: "Bug Hunt"
+description: "Debug systematically with test-driven bug fixing"
+trigger_hints:
+  - "bug"
+  - "broken"
+  - "fix"
+  - "issue"
+  - "failing"
+  - "error"
+  - "crash"
+phases:
+  - name: "🔍 Reproduce & Isolate"
+    guidance: "Understand the bug completely"
+    suggestions:
+      - "Reproduce manually first"
+      - "Isolate minimal reproduction case"
+      - "Check assumptions - read the actual code"
+      - "Verify it's actually a bug (not a feature)"
+      
+  - name: "🎯 Capture in Test"
+    guidance: "Lock down the bug with a failing test"
+    suggestions:
+      - "Write test that FAILS with current bug"
+      - "Test should be specific to this issue"
+      - "Verify test fails for the RIGHT reason"
+      - "Name test clearly: test_[specific_issue]"
+      
+  - name: "🔧 Fix"
+    guidance: "Make the test pass with minimal changes"
+    suggestions:
+      - "Change ONLY what's needed"
+      - "Run ALL tests - don't break others"
+      - "Consider if similar bugs exist elsewhere"
+      - "Document why the fix works"
