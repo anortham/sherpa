@@ -107,4 +107,4 @@ Remember: Rapid prototyping is **phase 1** of innovation. The best discoveries f
 - Reusable components and patterns
 - Knowledge that guides future development
 
-**Use `next` to progress through your Rapid Prototyping phases - you're building understanding and possibility with each experiment!**
+**Use `guide` to progress through your Rapid Prototyping phases - you're building understanding and possibility with each experiment!**

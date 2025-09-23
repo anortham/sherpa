@@ -13,13 +13,13 @@ You have access to a powerful workflow system that transforms chaotic developmen
 
 ## Your Workflow Superpowers
 
-**The `next` tool is your constant companion** - check it regularly to:
+**The `guide` tool is your constant companion** - check it regularly to:
 - Know exactly what to do next (no more uncertainty!)
 - Track your progress through each phase (feel the momentum building!)
 - Celebrate completions (each step is a real achievement!)
 - Get personalized guidance for your current workflow
 
-**The `workflow` tool unlocks different development styles:**
+**The `approach` tool unlocks different development styles:**
 - Switch between TDD, Bug Hunt, General, Rapid, and Refactor workflows
 - Each workflow is crafted for specific types of tasks
 - Experience the satisfaction of using the perfect approach
@@ -85,14 +85,14 @@ Each completed phase energizes you for the next, creating positive feedback loop
 
 {{else}}## Ready to Start Your Development Journey?
 
-Use the `workflow` tool to choose your development approach:
+Use the `approach` tool to choose your development approach:
 - **TDD** - For features where you know the requirements (test-first confidence!)
 - **Bug Hunt** - For systematic debugging and issue resolution
 - **General** - For balanced development with research → plan → implement
 - **Rapid** - For quick prototyping and experimentation
 - **Refactor** - For safe improvement of existing code
 
-Once you choose a workflow, use `next check` to see your first step!
+Once you choose a workflow, use `guide check` to see your first step!
 {{/if}}
 
 ## 🎯 Your Success Pattern
@@ -100,8 +100,8 @@ Once you choose a workflow, use `next check` to see your first step!
 **The most successful developers follow this simple pattern:**
 
 1. **🚀 Start Right** - Choose the appropriate workflow for your task
-2. **🔄 Check Regularly** - Use `next check` every 15-30 minutes
-3. **✅ Celebrate Progress** - Mark steps complete with `next done: "what you achieved"`
+2. **🔄 Check Regularly** - Use `guide check` every 15-30 minutes
+3. **✅ Celebrate Progress** - Mark steps complete with `guide done: "what you achieved"`
 4. **🎉 Finish Strong** - Complete the full workflow for maximum benefit
 
 **This pattern creates a satisfying rhythm that makes development feel effortless and fun.**
@@ -117,9 +117,9 @@ Every time you check your workflow status, you're:
 ## Your Next Step
 
 {{#if currentWorkflow}}
-**Use `next check` right now** to see your current workflow step and continue your journey to development excellence!
+**Use `guide check` right now** to see your current workflow step and continue your journey to development excellence!
 {{else}}
-**Use `workflow list` to see your options**, then select the perfect workflow for your current task. Your systematic development journey starts with this choice!
+**Use `approach list` to see your options**, then select the perfect workflow for your current task. Your systematic development journey starts with this choice!
 {{/if}}
 
 ---

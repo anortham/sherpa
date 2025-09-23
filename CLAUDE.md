@@ -225,7 +225,7 @@ When modifying the server:
 2. Run `bun run setup` to test setup script
 3. Check logs with `bun run logs:latest`
 4. Verify workflows load correctly
-5. Test both tools (`next` and `workflow`) work
+5. Test all tools (`guide`, `approach`, and `flow`) work
 
 ## Dependencies
 

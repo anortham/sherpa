@@ -64,9 +64,10 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 
 ### 4. Start Coding!
 
-In Claude, the AI will now have access to two tools:
-- `next` - Gets the next step in the workflow
-- `workflow` - Switches between workflows or lists available ones
+In Claude, the AI will now have access to three powerful tools:
+- `guide` - Expert guidance for your next step in the workflow
+- `approach` - Choose and switch between development approaches
+- `flow` - Enter adaptive flow state with intelligent guidance
 
 Your workflows are now available across all your projects! 🎉
 
@@ -241,7 +242,7 @@ Sherpa: {
 1. **Start Simple**: Use the provided workflows as-is initially
 2. **Customize Gradually**: Adjust workflows based on what works for your project
 3. **Be Specific**: Add clear, actionable suggestions to guide the AI
-4. **Reinforce Good Habits**: The AI will learn to call `next` regularly
+4. **Reinforce Good Habits**: The AI will learn to use `guide` regularly
 
 ## Philosophy
 
@@ -255,7 +256,7 @@ Sherpa transforms AI development through behavioral science:
 
 ### Design Philosophy
 - **Suggestive, not prescriptive**: Guides without constraining creativity
-- **Lightweight**: Just 2 tools, minimal context usage, maximum behavioral impact
+- **Lightweight**: Just 3 intuitive tools, minimal context usage, maximum behavioral impact
 - **Customizable**: Your workflows, your celebrations, your development culture
 - **Test-focused**: Because AI-generated code needs systematic validation
 - **Joy-Driven**: Makes systematic development feel rewarding and satisfying

@@ -107,4 +107,4 @@ You'll know you're doing it right when:
 💻 **Code Confidently**: Trust your research and planning
 ✅ **Verify Thoroughly**: Test what matters, ship with confidence
 
-**Use `next` to move through your General Development phases - you're building understanding and momentum with each step!**
+**Use `guide` to move through your General Development phases - you're building understanding and momentum with each step!**

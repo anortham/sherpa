@@ -80,4 +80,4 @@ Each bug you hunt successfully:
 - Gives you the satisfaction of systematic problem-solving
 - Increases your confidence in tackling complex issues
 
-**Use `next` to progress through your Bug Hunt phases - you're building both understanding and protection with each step!**
+**Use `guide` to progress through your Bug Hunt phases - you're building both understanding and protection with each step!**

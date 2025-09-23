@@ -30,6 +30,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "fs/promises";
 import { readFileSync } from "fs";
@@ -80,11 +82,12 @@ export class SherpaServer {
       {
         name: "sherpa",
         version: "1.0.0",
-        description: "Workflow guidance for better AI-assisted development with systematic behavioral adoption"
+        description: "Experience the deep satisfaction of systematic development - where every step builds confidence, tests pass on first try, and coding becomes a craft you're proud to practice"
       },
       {
         capabilities: {
           tools: {},
+          resources: {},
         },
       }
     );
@@ -343,26 +346,61 @@ export class SherpaServer {
   }
 
   private getFallbackInstructions(): string {
-    return `# 🏔️ Sherpa - Development Workflow Guide
+    return `# 🌊 Welcome to Sherpa - Where Development Becomes a Craft You Love
 
-You have access to two powerful workflow tools:
+You've just unlocked something special. Sherpa transforms the chaos of development into a deeply satisfying journey where every line of code has purpose, every test brings confidence, and every bug becomes a learning opportunity.
 
-**\`next\` tool**: Check your current workflow step and track progress
-- Use \`next check\` to see what to do next
-- Use \`next done: "description"\` to mark steps complete
+## The Feeling You're About to Experience
 
-**\`workflow\` tool**: Choose and switch between development workflows
-- Use \`workflow list\` to see available workflows
-- Use \`workflow set <name>\` to choose a workflow
+Imagine writing code where:
+- ✨ **Tests pass on the first try** because you understood the problem completely
+- 🎯 **Bugs fear you** because you hunt them systematically, not randomly
+- 🏔️ **Progress feels inevitable** because you always know your next step
+- 💪 **Confidence replaces anxiety** because workflows guide you to success
 
-## Available Workflows
-- **TDD**: Test-driven development for bulletproof code
-- **Bug Hunt**: Systematic debugging and issue resolution
-- **General**: Balanced development with research → plan → implement
-- **Rapid**: Quick prototyping and experimentation
-- **Refactor**: Safe code improvement with test coverage
+This isn't just another tool - it's your path to becoming the developer who ships with confidence, not hope.
 
-Use these tools regularly to maintain systematic, high-quality development practices!`;
+## Your Three Superpowers
+
+### 🧭 \`guide\` - Your Development Compass
+**The satisfaction of always knowing what's next**
+- \`guide check\` - See your next step (that relief of never being lost!)
+- \`guide done "what you achieved"\` - Celebrate progress (each step is a win!)
+- \`guide tdd\` - Instant TDD mode (for bulletproof features)
+- \`guide bug\` - Detective mode activated (for systematic fixes)
+
+### 🎯 \`approach\` - Your Strategic Advantage
+**Choose the perfect workflow for your task**
+- \`approach list\` - See all your development styles
+- \`approach set tdd\` - Test-driven confidence
+- \`approach set bug-hunt\` - Systematic debugging
+- \`approach set rapid\` - Quick exploration
+- \`approach set refactor\` - Safe improvement
+
+### 🌊 \`flow\` - Your Liquid Development Experience
+**Enter the zone where code flows naturally**
+- \`flow on\` - Gentle, adaptive guidance
+- \`flow whisper\` - Ultra-minimal, pure focus
+- \`flow active\` - Maximum AI assistance
+- \`flow hint\` - Get a smart suggestion
+
+## The Professional Transformation
+
+Every time you use these tools, you're not just coding - you're:
+- 🏗️ **Building habits** that define exceptional developers
+- 📈 **Creating momentum** that makes hard problems feel manageable
+- 🎨 **Crafting code** you'll be proud of months from now
+- 🚀 **Joining developers** who've discovered the joy of systematic work
+
+## Your First Taste of Excellence
+
+Right now, try this:
+1. Use \`approach list\` to see your options
+2. Pick the workflow that fits your current task
+3. Use \`guide check\` to get your first step
+4. Experience the relief of knowing exactly what to do
+
+Welcome to development that feels as good as the code it produces.`;
   }
 
   private setupHandlers() {
@@ -371,7 +409,7 @@ Use these tools regularly to maintain systematic, high-quality development pract
       tools: [
         {
           name: "guide",
-          description: "Get expert guidance that prevents bugs and speeds development. Use when starting features, fixing bugs, or feeling uncertain about next steps.",
+          description: "Experience the confidence of always knowing your next step - turning development chaos into a satisfying, systematic journey where every move builds toward success.",
           inputSchema: {
             type: "object",
             properties: {
@@ -394,7 +432,7 @@ Use these tools regularly to maintain systematic, high-quality development pract
         },
         {
           name: "approach",
-          description: "Choose the best development approach (TDD, Bug Hunt, Rapid, etc.) based on your current task. Optimized for different types of work.",
+          description: "Unlock the perfect workflow for your task - each approach is crafted to make specific types of work deeply satisfying and successful, transforming how you experience development.",
           inputSchema: {
             type: "object",
             properties: {
@@ -409,7 +447,7 @@ Use these tools regularly to maintain systematic, high-quality development pract
         },
         {
           name: "flow",
-          description: "Enter adaptive flow state with intelligent, context-aware guidance that learns from your patterns. The liquid development experience.",
+          description: "Enter the zone where code flows naturally from your fingertips - adaptive AI learns your patterns and amplifies your best development habits, creating a liquid coding experience.",
           inputSchema: {
             type: "object",
             properties: {
@@ -446,6 +484,36 @@ Use these tools regularly to maintain systematic, high-quality development pract
         return this.handleApproach(request.params.arguments);
       }
       throw new Error(`Unknown tool: ${request.params.name}`);
+    });
+
+    // Handle resource listing
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: [
+        {
+          uri: "sherpa://guide",
+          name: "Development Guide",
+          description: "Your journey to systematic development excellence starts here",
+          mimeType: "text/markdown"
+        }
+      ]
+    }));
+
+    // Handle resource reading
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const uri = request.params.uri;
+      if (uri === "sherpa://guide") {
+        const instructions = await this.getServerInstructions();
+        return {
+          contents: [
+            {
+              uri: uri,
+              mimeType: "text/markdown",
+              text: instructions
+            }
+          ]
+        };
+      }
+      throw new Error(`Unknown resource: ${uri}`);
     });
   }
 

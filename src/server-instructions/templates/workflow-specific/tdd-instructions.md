@@ -62,4 +62,4 @@ You'll know you're doing TDD right when:
 - Refactoring feels safe and enjoyable
 - You trust your code completely
 
-**Keep using `next` to progress through your TDD phases - each step builds toward shipping with complete confidence!**
+**Keep using `guide` to progress through your TDD phases - each step builds toward shipping with complete confidence!**

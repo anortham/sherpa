@@ -135,4 +135,4 @@ Remember: Time spent refactoring pays dividends forever. Clean, well-structured 
 - **Improves team collaboration** by making code easier to understand
 - **Decreases maintenance costs** by eliminating common sources of confusion
 
-**Use `next` to progress through your Safe Refactoring phases - you're building code that will be a joy to work with for years to come!**
+**Use `guide` to progress through your Safe Refactoring phases - you're building code that will be a joy to work with for years to come!**
