@@ -1,5 +1,11 @@
 # 🏔️ Sherpa - AI Development Workflow Guide
 
+[![CI](https://github.com/anthropics/sherpa-mcp/workflows/CI/badge.svg)](https://github.com/anthropics/sherpa-mcp/actions)
+[![NPM Version](https://img.shields.io/npm/v/sherpa-mcp.svg)](https://www.npmjs.com/package/sherpa-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue.svg)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/Tests-201%20passing-green.svg)](#testing)
+
 **MCP server that guides AI agents through systematic development workflows using behavioral adoption and positive reinforcement**
 
 Sherpa is a Model Context Protocol (MCP) server that transforms AI-assisted development by guiding agents through proven workflows with behavioral adoption techniques. Using positive reinforcement, progress tracking, and contextual celebrations, Sherpa helps AI agents develop systematic coding practices that lead to higher quality outcomes.

@@ -18,7 +18,10 @@
     "logs:latest": "ls -t ~/.sherpa/logs/sherpa-*.log | head -1 | xargs tail -f",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "postinstall": "bun run setup.ts"
+    "postinstall": "bun run setup.ts",
+    "npm:setup": "node --loader=ts-node/esm setup.ts || npx ts-node setup.ts",
+    "npm:start": "node --loader=ts-node/esm sherpa-server.ts || npx ts-node sherpa-server.ts",
+    "npm:test": "echo 'Note: Tests require Bun. Install Bun for full testing: https://bun.sh'"
   },
   "bin": {
     "sherpa": "./setup.ts"
@@ -28,7 +31,10 @@
     "yaml": "^2.3.4"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^18.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   },
   "keywords": [
     "mcp",
@@ -38,11 +44,23 @@
     "development",
     "claude",
     "tdd",
-    "testing"
+    "testing",
+    "behavioral-adoption",
+    "guidance",
+    "liquid-experience",
+    "flow-state"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/sherpa-mcp.git"
+    "url": "https://github.com/anthropics/sherpa-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anthropics/sherpa-mcp/issues"
+  },
+  "homepage": "https://github.com/anthropics/sherpa-mcp#readme",
+  "author": {
+    "name": "Anthropic",
+    "url": "https://anthropic.com"
   },
   "license": "MIT"
 }

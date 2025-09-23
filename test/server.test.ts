@@ -103,8 +103,8 @@ describe("Sherpa Server", () => {
     expect(Array.isArray(validWorkflow.phases)).toBe(true);
 
     // Test invalid workflow
-    expect(invalidWorkflow.description).toBeFalsy();
-    expect(invalidWorkflow.phases).toBeFalsy();
+    expect((invalidWorkflow as any).description).toBeFalsy();
+    expect((invalidWorkflow as any).phases).toBeFalsy();
   });
 });
 
@@ -481,7 +481,11 @@ describe("Behavioral Adoption System", () => {
       const builder = new InstructionBuilder(progressTracker, celebrationGenerator);
 
       const workflowInstructions = await builder.getWorkflowSpecificInstructions("nonexistent");
-      expect(workflowInstructions).toBe("");
+
+      // Should return fallback instructions, not empty string
+      expect(workflowInstructions).toContain("Nonexistent Workflow");
+      expect(workflowInstructions).toContain("Follow systematic development practices");
+      expect(workflowInstructions).toContain("Plan your approach");
     });
   });
 });

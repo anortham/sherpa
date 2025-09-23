@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        bun-version: [1.0.0, latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: ${{ matrix.bun-version }}
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Run tests
+      run: bun test
+
+    - name: Run setup script
+      run: bun run setup.ts status
+
+    - name: Check TypeScript compilation
+      run: bun run --dry-run sherpa-server.ts
+
+    - name: Test server startup
+      run: timeout 10s bun run sherpa-server.ts || test $? = 124
+
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Check TypeScript types
+      run: bunx tsc --noEmit
+
+    - name: Check for TODO/FIXME comments
+      run: |
+        if grep -r "TODO\|FIXME\|XXX\|HACK" --include="*.ts" --include="*.js" src/ sherpa-server.ts setup.ts; then
+          echo "❌ Found TODO/FIXME comments in code"
+          exit 1
+        else
+          echo "✅ No TODO/FIXME comments found"
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Audit dependencies
+      run: bun audit
+
+    - name: Check for sensitive files
+      run: |
+        if find . -name "*.env*" -o -name "*.key" -o -name "*.pem" -o -name "*.secret" | grep -v node_modules | grep -v .git; then
+          echo "❌ Found potential sensitive files"
+          exit 1
+        else
+          echo "✅ No sensitive files found"
+        fi

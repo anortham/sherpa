@@ -89,13 +89,104 @@ export class InstructionBuilder {
       return await this.loadTemplate(templateName);
     } catch (error) {
       console.error(`Failed to load workflow-specific instructions for ${workflowName}:`, error);
-      return "";
+
+      // Provide fallback instructions for common workflows
+      return this.getWorkflowFallbackInstructions(workflowName);
     }
+  }
+
+  private getWorkflowFallbackInstructions(workflowName: string): string {
+    const fallbacks: Record<string, string> = {
+      'tdd': `
+## TDD Workflow Instructions
+
+Follow these steps for test-driven development:
+1. Write a failing test
+2. Implement minimal code to pass
+3. Refactor while keeping tests green
+4. Repeat the cycle
+
+This systematic approach helps build reliable, well-tested code.`,
+
+      'bug-hunt': `
+## Bug Hunt Workflow Instructions
+
+Systematic debugging approach:
+1. Reproduce the issue consistently
+2. Isolate the problem area
+3. Form hypotheses about the cause
+4. Test hypotheses systematically
+5. Fix the root cause
+6. Add tests to prevent regression
+
+Take time to understand before fixing.`,
+
+      'general': `
+## General Development Workflow Instructions
+
+Balanced development approach:
+1. Plan your approach
+2. Break down the task
+3. Implement incrementally
+4. Test as you go
+5. Refactor for clarity
+6. Document key decisions
+
+Stay organized and methodical.`,
+
+      'rapid': `
+## Rapid Prototyping Instructions
+
+Fast iteration for quick results:
+1. Focus on core functionality
+2. Use simple, direct solutions
+3. Prioritize working over perfect
+4. Get feedback quickly
+5. Iterate based on learnings
+
+Perfect is the enemy of good enough.`,
+
+      'refactor': `
+## Refactoring Workflow Instructions
+
+Safe code improvement:
+1. Ensure good test coverage first
+2. Make small, incremental changes
+3. Run tests after each change
+4. Focus on one improvement at a time
+5. Preserve existing behavior
+6. Clean up as you go
+
+Refactor with confidence through testing.`
+    };
+
+    return fallbacks[workflowName] || `
+## ${workflowName.charAt(0).toUpperCase() + workflowName.slice(1)} Workflow
+
+Follow systematic development practices:
+1. Plan your approach
+2. Work incrementally
+3. Test your changes
+4. Refactor for clarity
+
+Use established patterns and best practices.`;
   }
 
   private async loadTemplate(templateName: string): Promise<string> {
     const templatePath = path.join(this.templatesDir, templateName);
-    return fs.readFileSync(templatePath, "utf-8");
+
+    try {
+      // Use fs/promises for async file reading
+      const { readFile } = await import("fs/promises");
+      return await readFile(templatePath, "utf-8");
+    } catch (error: any) {
+      // Try sync version as fallback
+      try {
+        return fs.readFileSync(templatePath, "utf-8");
+      } catch (syncError) {
+        throw error; // Throw original async error
+      }
+    }
   }
 
   private async buildDynamicContent(
@@ -223,7 +314,7 @@ export class InstructionBuilder {
       // Handle suggestions list
       if (data.currentWorkflow.nextSuggestions) {
         const suggestionsHtml = data.currentWorkflow.nextSuggestions
-          .map(s => `- ${s}`)
+          .map((s: string) => `- ${s}`)
           .join('\n');
         result = result.replace(/\{\{#each currentWorkflow\.nextSuggestions\}\}\s*- \{\{this\}\}\s*\{\{\/each\}\}/g,
           suggestionsHtml);

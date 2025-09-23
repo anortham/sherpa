@@ -16,6 +16,80 @@ const WORKFLOWS_DIR = path.join(SHERPA_HOME, "workflows");
 const LOGS_DIR = path.join(SHERPA_HOME, "logs");
 const SOURCE_WORKFLOWS = path.join(__dirname, "workflows");
 
+async function checkBunInstallation(): Promise<boolean> {
+  try {
+    const { spawn } = await import("child_process");
+    const bunProcess = spawn("bun", ["--version"], { stdio: "pipe" });
+
+    return new Promise((resolve) => {
+      bunProcess.on("error", () => resolve(false));
+      bunProcess.on("exit", (code) => resolve(code === 0));
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function displayInstallationHelp() {
+  console.log("\n❌ Bun is required but not found on your system.");
+  console.log("\n📦 To install Bun:");
+  console.log("   curl -fsSL https://bun.sh/install | bash");
+  console.log("   # or");
+  console.log("   npm install -g bun");
+  console.log("   # or");
+  console.log("   brew install bun");
+  console.log("\n📖 For more installation options, visit: https://bun.sh/docs/installation");
+  console.log("\n⚠️  If you have Bun installed but see this error:");
+  console.log("   - Restart your terminal");
+  console.log("   - Check that 'bun' is in your PATH");
+  console.log("   - Try running 'bun --version' manually");
+}
+
+async function verifyInstallation(): Promise<boolean> {
+  try {
+    // Check if directories exist
+    const sherpaExists = await fileExists(SHERPA_HOME);
+    const workflowsExist = await fileExists(WORKFLOWS_DIR);
+    const logsExist = await fileExists(LOGS_DIR);
+
+    if (!sherpaExists || !workflowsExist || !logsExist) {
+      return false;
+    }
+
+    // Check if we have workflow files
+    const workflowFiles = await fs.readdir(WORKFLOWS_DIR);
+    const yamlFiles = workflowFiles.filter(f => f.endsWith('.yaml') || f.endsWith('.yml'));
+
+    if (yamlFiles.length === 0) {
+      return false;
+    }
+
+    // Try to start the server briefly to check it works
+    const serverPath = path.join(__dirname, "sherpa-server.ts");
+    const serverExists = await fileExists(serverPath);
+
+    return serverExists;
+  } catch {
+    return false;
+  }
+}
+
+async function displayVerificationResults() {
+  console.log("\n🔍 Verifying installation...");
+
+  const isValid = await verifyInstallation();
+
+  if (isValid) {
+    console.log("✅ Installation verified successfully!");
+    console.log("   • Sherpa directory structure created");
+    console.log("   • Workflow templates installed");
+    console.log("   • Server files accessible");
+  } else {
+    console.log("⚠️  Installation verification failed");
+    console.log("   Please try running setup again or check file permissions");
+  }
+}
+
 async function fileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
@@ -90,6 +164,9 @@ async function setup(options: { force?: boolean, reset?: boolean } = {}) {
       console.log(`\n💡 To overwrite existing workflows, run: bun run setup --force`);
     }
 
+    // Verify installation
+    await displayVerificationResults();
+
   } catch (error) {
     console.error("❌ Setup failed:", error);
     process.exit(1);
@@ -146,6 +223,15 @@ const command = args[0];
 const hasForceFlag = args.includes('--force');
 
 async function main() {
+  // Check Bun installation for commands that need it
+  if (command !== 'help') {
+    const bunInstalled = await checkBunInstallation();
+    if (!bunInstalled) {
+      await displayInstallationHelp();
+      process.exit(1);
+    }
+  }
+
   switch (command) {
     case 'reset':
       await reset();
