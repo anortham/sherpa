@@ -276,6 +276,16 @@ describe("Behavioral Adoption System", () => {
       expect(stats.currentStreak).toBeGreaterThan(0);
     });
 
+    test("should only increment streak once per day", () => {
+      const tracker = new ProgressTracker();
+
+      tracker.recordStepCompletion("tdd", "first step");
+      tracker.recordStepCompletion("tdd", "second step same day");
+
+      const stats = tracker.getProgressStats();
+      expect(stats.currentStreak).toBe(1);
+    });
+
     test("should record workflow completion", () => {
       const tracker = new ProgressTracker();
 
@@ -301,6 +311,16 @@ describe("Behavioral Adoption System", () => {
       expect(firstWorkflowMilestone).toBeTruthy();
       expect(firstWorkflowMilestone?.achieved).toBe(true);
       expect(firstWorkflowMilestone?.achievedAt).toBeInstanceOf(Date);
+    });
+
+    test("should return newly achieved milestones", () => {
+      const tracker = new ProgressTracker();
+
+      const milestones = tracker.recordWorkflowCompletion("tdd", 4, 30);
+      const firstWorkflowMilestone = milestones.find(m => m.id === "first_workflow_completion");
+
+      expect(firstWorkflowMilestone).toBeTruthy();
+      expect(firstWorkflowMilestone?.achieved).toBe(true);
     });
 
     test("should detect workflow diversity milestone", () => {

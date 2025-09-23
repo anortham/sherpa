@@ -641,6 +641,18 @@ export class AdaptiveLearningEngine {
     this.flowState.lastHintTime = new Date();
   }
 
+  setCelebrationLevel(level: string): void {
+    const allowedLevels = new Set(["full", "minimal", "whisper", "off"]);
+    const normalizedLevel = allowedLevels.has(level) ? level : this.userProfile.preferences.celebrationLevel;
+
+    this.currentSession.celebrationLevel = normalizedLevel;
+    this.userProfile.preferences.celebrationLevel = normalizedLevel;
+    this.userProfile.behaviorMetrics.preferredCelebrationLevel = normalizedLevel;
+
+    // Persist asynchronously; ignore errors to keep guidance responsive.
+    void this.saveUserProfile();
+  }
+
   updateFlowState(mode: string, options?: any): FlowState {
     switch (mode) {
       case 'on':

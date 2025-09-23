@@ -88,23 +88,27 @@ export class ProgressTracker {
   /**
    * Record completion of a workflow step
    */
-  recordStepCompletion(workflowType: string, stepDescription: string): void {
+  recordStepCompletion(workflowType: string, stepDescription: string): Milestone[] {
+    const activityTime = new Date();
     this.stats.totalStepsCompleted++;
-    this.stats.lastActivity = new Date();
-    this.updateStreak();
+    this.updateStreak(activityTime);
+    this.stats.lastActivity = activityTime;
     this.trackWorkflowUsage(workflowType);
-    this.checkMilestones();
+    return this.checkMilestones();
   }
 
   /**
    * Record completion of an entire workflow
    */
-  recordWorkflowCompletion(workflowType: string, stepsCompleted: number, timeSpent: number): void {
+  recordWorkflowCompletion(workflowType: string, stepsCompleted: number, timeSpent: number): Milestone[] {
+    const activityTime = new Date();
     this.stats.totalWorkflowsCompleted++;
     this.stats.timeSpentInWorkflows += timeSpent;
     this.updateAverageSteps(stepsCompleted);
     this.trackWorkflowUsage(workflowType);
-    this.checkMilestones();
+    this.updateStreak(activityTime);
+    this.stats.lastActivity = activityTime;
+    return this.checkMilestones();
   }
 
   /**
@@ -184,14 +188,21 @@ export class ProgressTracker {
     }
   }
 
-  private updateStreak(): void {
-    const now = new Date();
+  private updateStreak(activityTime: Date): void {
+    const previousActivity = this.stats.lastActivity;
     const daysSinceLastActivity = Math.floor(
-      (now.getTime() - this.stats.lastActivity.getTime()) / (1000 * 60 * 60 * 24)
+      (activityTime.getTime() - previousActivity.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysSinceLastActivity <= 1) {
-      this.stats.currentStreak = Math.max(1, this.stats.currentStreak + 1);
+    if (this.stats.currentStreak === 0) {
+      this.stats.currentStreak = 1;
+      return;
+    }
+
+    if (daysSinceLastActivity === 0) {
+      this.stats.currentStreak = Math.max(1, this.stats.currentStreak);
+    } else if (daysSinceLastActivity === 1) {
+      this.stats.currentStreak = Math.max(1, this.stats.currentStreak) + 1;
     } else {
       this.stats.currentStreak = 1;
     }

@@ -10,11 +10,14 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
+import { fileURLToPath } from "url";
+
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const SHERPA_HOME = path.join(os.homedir(), ".sherpa");
 const WORKFLOWS_DIR = path.join(SHERPA_HOME, "workflows");
 const LOGS_DIR = path.join(SHERPA_HOME, "logs");
-const SOURCE_WORKFLOWS = path.join(__dirname, "workflows");
+const SOURCE_WORKFLOWS = path.join(MODULE_DIR, "workflows");
 
 async function checkBunInstallation(): Promise<boolean> {
   try {
@@ -153,7 +156,7 @@ async function setup(options: { force?: boolean, reset?: boolean } = {}) {
     console.log(`        "mcpServers": {`);
     console.log(`          "sherpa": {`);
     console.log(`            "command": "bun",`);
-    console.log(`            "args": ["run", "${path.join(__dirname, "sherpa-server.ts")}"]`);
+    console.log(`            "args": ["run", "${path.join(MODULE_DIR, "sherpa-server.ts")}"]`);
     console.log(`          }`);
     console.log(`        }`);
     console.log(`      }`);

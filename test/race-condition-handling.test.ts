@@ -268,7 +268,7 @@ describe("Race Condition Handling", () => {
       const engines = Array.from({ length: 4 }, () => new AdaptiveLearningEngine(TEST_SHERPA_HOME));
 
       // Simulate rapid save/load operations
-      const operations = [];
+      const operations: Promise<void>[] = [];
 
       for (let i = 0; i < engines.length; i++) {
         operations.push(

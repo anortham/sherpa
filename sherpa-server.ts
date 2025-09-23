@@ -32,11 +32,13 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "fs/promises";
+import { readFileSync } from "fs";
 import * as path from "path";
 import * as os from "os";
 import * as yaml from "yaml";
+import { fileURLToPath } from "url";
 import { InstructionBuilder } from "./src/server-instructions/instruction-builder";
-import { ProgressTracker } from "./src/behavioral-adoption/progress-tracker";
+import { ProgressTracker, Milestone } from "./src/behavioral-adoption/progress-tracker";
 import { CelebrationGenerator } from "./src/behavioral-adoption/celebration-generator";
 import { AdaptiveLearningEngine } from "./src/behavioral-adoption/adaptive-learning-engine";
 import { Workflow, WorkflowPhase, AdaptiveHint, PredictiveContext } from "./src/types";
@@ -44,6 +46,7 @@ import { Workflow, WorkflowPhase, AdaptiveHint, PredictiveContext } from "./src/
 // Types moved to src/types.ts
 
 type CelebrationLevel = "full" | "minimal" | "whisper" | "off";
+const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 export class SherpaServer {
   private server: Server;
@@ -170,11 +173,15 @@ export class SherpaServer {
       }
 
       for (const file of yamlFiles) {
-        const content = await fs.readFile(path.join(workflowsDir, file), 'utf-8');
-        const workflow = yaml.parse(content) as Workflow;
-        const key = path.basename(file, path.extname(file));
-        this.workflows.set(key, workflow);
-        this.log("INFO", `Loaded workflow: ${key} - ${workflow.name}`);
+        try {
+          const content = await fs.readFile(path.join(workflowsDir, file), 'utf-8');
+          const workflow = yaml.parse(content) as Workflow;
+          const key = path.basename(file, path.extname(file));
+          this.workflows.set(key, workflow);
+          this.log("INFO", `Loaded workflow: ${key} - ${workflow.name}`);
+        } catch (error) {
+          this.log("WARN", `Skipping invalid workflow file ${file}: ${error}`);
+        }
       }
 
       // Auto-detect initial workflow based on context
@@ -268,8 +275,8 @@ export class SherpaServer {
 
   private loadEncouragements(): void {
     try {
-      const encouragementsPath = path.join(process.cwd(), "src", "server-instructions", "templates", "encouragements.json");
-      const content = require("fs").readFileSync(encouragementsPath, "utf-8");
+      const encouragementsPath = path.join(SERVER_DIR, "src", "server-instructions", "templates", "encouragements.json");
+      const content = readFileSync(encouragementsPath, "utf-8");
       this.encouragements = JSON.parse(content);
     } catch (error) {
       // Fallback to basic structure to prevent errors
@@ -326,6 +333,13 @@ export class SherpaServer {
       completed: completedSteps.length,
       total: currentPhase.suggestions.length
     };
+  }
+
+  private getTotalCompletedSteps(workflow: Workflow): number {
+    return workflow.phases.reduce((total, workflowPhase) => {
+      const completed = this.phaseProgress.get(workflowPhase.name) || [];
+      return total + completed.length;
+    }, 0);
   }
 
   private getFallbackInstructions(): string {
@@ -436,10 +450,13 @@ Use these tools regularly to maintain systematic, high-quality development pract
   }
 
   private handleGuide(args: any): { content: { type: string; text: string }[] } {
-    const { action, completed, context } = args;
+    const safeArgs = args ?? {};
+    const action = safeArgs.action ?? "check";
+    const completed = safeArgs.completed;
+    const context = safeArgs.context;
 
     // Record tool usage for learning
-    this.learningEngine.recordToolUsage("guide", args);
+    this.learningEngine.recordToolUsage("guide", safeArgs);
 
     // Apply learned preferences
     this.celebrationLevel = this.learningEngine.getUserProfile().preferences.celebrationLevel as CelebrationLevel;
@@ -517,11 +534,14 @@ Use these tools regularly to maintain systematic, high-quality development pract
 
     // Handle step completion with enhanced celebration
     let celebrationMessage = "";
-    let newMilestones: any[] = [];
+    let newMilestones: Milestone[] = [];
 
     if (action === "done" && completed) {
       this.recordProgress(completed);
-      this.progressTracker.recordStepCompletion(this.currentWorkflow, completed);
+      const stepMilestones = this.progressTracker.recordStepCompletion(this.currentWorkflow, completed);
+      if (stepMilestones.length > 0) {
+        newMilestones = [...newMilestones, ...stepMilestones];
+      }
 
       // Generate celebration for completed step
       const celebrationContext = {
@@ -529,7 +549,8 @@ Use these tools regularly to maintain systematic, high-quality development pract
         phaseName: phase.name,
         stepDescription: completed,
         isPhaseComplete: remainingSuggestions.length <= 1, // Will be complete after this step
-        isWorkflowComplete: false
+        isWorkflowComplete: false,
+        newMilestones
       };
 
       celebrationMessage = this.celebrationGenerator.generateCelebration(celebrationContext);
@@ -606,22 +627,26 @@ Use these tools regularly to maintain systematic, high-quality development pract
 
     // Check for workflow completion
     if (isWorkflowComplete) {
+      const totalStepsCompleted = this.getTotalCompletedSteps(workflow);
+      const completionMilestones = this.progressTracker.recordWorkflowCompletion(
+        this.currentWorkflow,
+        totalStepsCompleted,
+        30 // Estimate 30 minutes - could be enhanced with actual timing
+      );
+      if (completionMilestones.length > 0) {
+        newMilestones = [...newMilestones, ...completionMilestones];
+      }
+
       const workflowCompletionContext = {
         workflowType: this.currentWorkflow,
         phaseName: currentPhase.name,
         isPhaseComplete: true,
-        isWorkflowComplete: true
+        isWorkflowComplete: true,
+        newMilestones
       };
 
       const completionCelebration = this.celebrationGenerator.generateCelebration(workflowCompletionContext);
       response.workflow_completion = completionCelebration;
-
-      // Record workflow completion
-      this.progressTracker.recordWorkflowCompletion(
-        this.currentWorkflow,
-        currentProgress.length,
-        30 // Estimate 30 minutes - could be enhanced with actual timing
-      );
 
       // Record completion with learning engine for adaptive insights
       this.learningEngine.recordWorkflowCompletion(
@@ -629,6 +654,9 @@ Use these tools regularly to maintain systematic, high-quality development pract
         30, // Duration in minutes
         true // Success
       );
+
+      this.phaseProgress.clear();
+      this.currentPhase = 0;
     }
 
     // Convert to natural language format
@@ -706,10 +734,11 @@ Use these tools regularly to maintain systematic, high-quality development pract
   }
 
   private handleApproach(args: any) {
-    const { set } = args;
+    const safeArgs = args ?? {};
+    const set = safeArgs.set ?? "list";
 
     // Record tool usage for learning
-    this.learningEngine.recordToolUsage("approach", args);
+    this.learningEngine.recordToolUsage("approach", safeArgs);
 
     // Apply learned preferences
     this.celebrationLevel = this.learningEngine.getUserProfile().preferences.celebrationLevel as CelebrationLevel;
@@ -894,10 +923,12 @@ Use these tools regularly to maintain systematic, high-quality development pract
   }
 
   private handleFlow(args: any) {
-    const { mode, celebration } = args;
+    const safeArgs = args ?? {};
+    const mode = safeArgs.mode ?? "on";
+    const celebration = safeArgs.celebration;
 
     // Record tool usage for learning
-    this.learningEngine.recordToolUsage("flow", args);
+    this.learningEngine.recordToolUsage("flow", safeArgs);
 
     switch (mode) {
       case "on":
@@ -1016,7 +1047,9 @@ Use these tools regularly to maintain systematic, high-quality development pract
           };
         }
 
-        this.celebrationLevel = celebration as CelebrationLevel;
+        const celebrationLevel = celebration as CelebrationLevel;
+        this.celebrationLevel = celebrationLevel;
+        this.learningEngine.setCelebrationLevel(celebrationLevel);
         const levelDescriptions = {
           full: "Complete celebrations and achievements enabled",
           minimal: "Streamlined progress tracking - just the essentials",
@@ -1034,6 +1067,7 @@ Use these tools regularly to maintain systematic, high-quality development pract
         };
 
       case "off":
+        this.learningEngine.updateFlowState("off");
         return {
           content: [
             {

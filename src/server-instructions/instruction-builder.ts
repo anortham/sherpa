@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { Workflow } from "../types";
 import { ProgressTracker } from "../behavioral-adoption/progress-tracker";
 import { CelebrationGenerator } from "../behavioral-adoption/celebration-generator";
@@ -36,7 +37,8 @@ export class InstructionBuilder {
   private celebrationGenerator: CelebrationGenerator;
 
   constructor(progressTracker: ProgressTracker, celebrationGenerator: CelebrationGenerator) {
-    this.templatesDir = path.join(__dirname, "templates");
+    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+    this.templatesDir = path.join(moduleDir, "templates");
     this.progressTracker = progressTracker;
     this.celebrationGenerator = celebrationGenerator;
     this.loadEncouragements();

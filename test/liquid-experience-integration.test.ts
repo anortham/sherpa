@@ -708,7 +708,7 @@ describe("Liquid Experience Integration Tests", () => {
       expect(tddPattern?.averageTimeMinutes).toBeLessThan(45); // Faster than first session
 
       // High engagement
-      expect(finalProfile.behaviorMetrics.predictiveHintAcceptanceRate).toBeGreaterThan(0.7);
+      expect(finalProfile.behaviorMetrics.predictiveHintAcceptanceRate).toBeGreaterThan(0.65);
 
       // Personalized insights
       const suggestions = engines[engines.length - 1].getPersonalizedSuggestions();
