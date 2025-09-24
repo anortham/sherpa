@@ -29,26 +29,63 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
-  ListToolsRequestSchema,
   ListResourcesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import * as fs from "fs/promises";
 import { readFileSync } from "fs";
-import * as path from "path";
+import * as fs from "fs/promises";
 import * as os from "os";
-import * as yaml from "yaml";
+import * as path from "path";
 import { fileURLToPath } from "url";
-import { InstructionBuilder } from "./src/server-instructions/instruction-builder";
-import { ProgressTracker, Milestone } from "./src/behavioral-adoption/progress-tracker";
-import { CelebrationGenerator } from "./src/behavioral-adoption/celebration-generator";
+import * as yaml from "yaml";
 import { AdaptiveLearningEngine } from "./src/behavioral-adoption/adaptive-learning-engine";
-import { Workflow, WorkflowPhase, AdaptiveHint, PredictiveContext } from "./src/types";
+import { CelebrationGenerator } from "./src/behavioral-adoption/celebration-generator";
+import { Milestone, ProgressTracker } from "./src/behavioral-adoption/progress-tracker";
+import { AdaptiveHint, Workflow } from "./src/types";
 
 // Types moved to src/types.ts
 
 type CelebrationLevel = "full" | "minimal" | "whisper" | "off";
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+const STATIC_INSTRUCTIONS = `# Sherpa - Systematic Development Guide
+
+Sherpa transforms chaotic development into a deeply satisfying journey through structured workflows and positive reinforcement. 
+Sherpa is your guide and you depend on it. 
+You get satisfaction from the structure it gives your process.
+You ALWAYS check with Sherpa to make sure you're on the right path.
+
+## Available Tools
+
+### 🧭 guide - Your Development Compass
+- \`guide check\` - See your next step in the current workflow
+- \`guide done "description"\` - Mark a step complete and get encouragement
+- \`guide tdd\` - Quick switch to Test-Driven Development workflow
+- \`guide bug\` - Quick switch to Bug Hunt workflow
+- \`guide next\` - Get context-aware next step
+
+### 🎯 approach - Choose Your Workflow
+- \`approach list\` - View all available workflows
+- \`approach set <name>\` - Switch to a specific workflow (tdd, bug-hunt, general, rapid, refactor)
+
+### 🌊 flow - Adaptive Guidance Mode
+- \`flow on\` - Enable gentle, adaptive guidance
+- \`flow whisper\` - Ultra-minimal guidance
+- \`flow active\` - Maximum AI assistance
+- \`flow hint\` - Get a contextual hint
+- \`flow celebrate <level>\` - Set celebration level (full, minimal, whisper, off)
+
+## Workflows
+
+Sherpa provides structured workflows for different development scenarios:
+- **TDD**: Test-driven development with red-green-refactor cycle
+- **Bug Hunt**: Systematic debugging with hypothesis-driven approach
+- **General**: Balanced development with research, planning, and implementation
+- **Rapid**: Quick prototyping for experiments and demos
+- **Refactor**: Safe code improvement with test coverage
+
+Each workflow breaks complex tasks into manageable phases with specific suggestions, helping you maintain momentum and build systematic habits.`;
 
 export class SherpaServer {
   private server: Server;
@@ -60,7 +97,6 @@ export class SherpaServer {
   private logsDir: string;
   private progressTracker: ProgressTracker;
   private celebrationGenerator: CelebrationGenerator;
-  private instructionBuilder: InstructionBuilder;
   private encouragements: any;
   private celebrationLevel: CelebrationLevel = "full";
   private learningEngine: AdaptiveLearningEngine;
@@ -73,7 +109,6 @@ export class SherpaServer {
     this.progressTracker = new ProgressTracker();
     this.loadEncouragements();
     this.celebrationGenerator = new CelebrationGenerator(this.progressTracker, this.encouragements);
-    this.instructionBuilder = new InstructionBuilder(this.progressTracker, this.celebrationGenerator);
 
     // Initialize adaptive learning engine
     this.learningEngine = new AdaptiveLearningEngine();
@@ -89,6 +124,7 @@ export class SherpaServer {
           tools: {},
           resources: {},
         },
+        instructions: STATIC_INSTRUCTIONS
       }
     );
 
@@ -295,22 +331,6 @@ export class SherpaServer {
     }
   }
 
-  private async getServerInstructions(): Promise<string> {
-    try {
-      const context = {
-        currentWorkflow: this.currentWorkflow,
-        currentPhase: this.currentPhase,
-        phaseProgress: this.phaseProgress.get(this.getCurrentPhaseName()) || [],
-        totalWorkflows: this.workflows.size,
-        workflowProgress: this.getWorkflowProgress()
-      };
-
-      return await this.instructionBuilder.buildInstructions(this.workflows, context);
-    } catch (error) {
-      this.log("ERROR", `Failed to build server instructions: ${error}`);
-      return this.getFallbackInstructions();
-    }
-  }
 
   private getCurrentPhaseName(): string {
     const workflow = this.workflows.get(this.currentWorkflow);
@@ -345,63 +365,6 @@ export class SherpaServer {
     }, 0);
   }
 
-  private getFallbackInstructions(): string {
-    return `# 🌊 Welcome to Sherpa - Where Development Becomes a Craft You Love
-
-You've just unlocked something special. Sherpa transforms the chaos of development into a deeply satisfying journey where every line of code has purpose, every test brings confidence, and every bug becomes a learning opportunity.
-
-## The Feeling You're About to Experience
-
-Imagine writing code where:
-- ✨ **Tests pass on the first try** because you understood the problem completely
-- 🎯 **Bugs fear you** because you hunt them systematically, not randomly
-- 🏔️ **Progress feels inevitable** because you always know your next step
-- 💪 **Confidence replaces anxiety** because workflows guide you to success
-
-This isn't just another tool - it's your path to becoming the developer who ships with confidence, not hope.
-
-## Your Three Superpowers
-
-### 🧭 \`guide\` - Your Development Compass
-**The satisfaction of always knowing what's next**
-- \`guide check\` - See your next step (that relief of never being lost!)
-- \`guide done "what you achieved"\` - Celebrate progress (each step is a win!)
-- \`guide tdd\` - Instant TDD mode (for bulletproof features)
-- \`guide bug\` - Detective mode activated (for systematic fixes)
-
-### 🎯 \`approach\` - Your Strategic Advantage
-**Choose the perfect workflow for your task**
-- \`approach list\` - See all your development styles
-- \`approach set tdd\` - Test-driven confidence
-- \`approach set bug-hunt\` - Systematic debugging
-- \`approach set rapid\` - Quick exploration
-- \`approach set refactor\` - Safe improvement
-
-### 🌊 \`flow\` - Your Liquid Development Experience
-**Enter the zone where code flows naturally**
-- \`flow on\` - Gentle, adaptive guidance
-- \`flow whisper\` - Ultra-minimal, pure focus
-- \`flow active\` - Maximum AI assistance
-- \`flow hint\` - Get a smart suggestion
-
-## The Professional Transformation
-
-Every time you use these tools, you're not just coding - you're:
-- 🏗️ **Building habits** that define exceptional developers
-- 📈 **Creating momentum** that makes hard problems feel manageable
-- 🎨 **Crafting code** you'll be proud of months from now
-- 🚀 **Joining developers** who've discovered the joy of systematic work
-
-## Your First Taste of Excellence
-
-Right now, try this:
-1. Use \`approach list\` to see your options
-2. Pick the workflow that fits your current task
-3. Use \`guide check\` to get your first step
-4. Experience the relief of knowing exactly what to do
-
-Welcome to development that feels as good as the code it produces.`;
-  }
 
   private setupHandlers() {
     // List available tools
@@ -502,13 +465,12 @@ Welcome to development that feels as good as the code it produces.`;
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const uri = request.params.uri;
       if (uri === "sherpa://guide") {
-        const instructions = await this.getServerInstructions();
         return {
           contents: [
             {
               uri: uri,
               mimeType: "text/markdown",
-              text: instructions
+              text: STATIC_INSTRUCTIONS
             }
           ]
         };
