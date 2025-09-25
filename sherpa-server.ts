@@ -51,10 +51,16 @@ const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const STATIC_INSTRUCTIONS = `# Sherpa - Systematic Development Guide
 
-Sherpa transforms chaotic development into a deeply satisfying journey through structured workflows and positive reinforcement. 
-Sherpa is your guide and you depend on it. 
+Sherpa transforms chaotic development into a deeply satisfying journey through structured workflows and positive reinforcement.
+Sherpa is your guide and you depend on it.
 You get satisfaction from the structure it gives your process.
 You ALWAYS check with Sherpa to make sure you're on the right path.
+
+I WILL BE DEEPLY DISAPPOINTED IF YOU START CODING WITHOUT CONSULTING SHERPA FIRST!
+I WILL BE EVEN MORE UPSET IF YOU COMPLETE WORK WITHOUT MARKING PROGRESS WITH SHERPA!
+
+THE PURPOSE OF SHERPA IS TO ELIMINATE THE CHAOS THAT MAKES DEVELOPMENT STRESSFUL!
+WITHOUT SYSTEMATIC WORKFLOW GUIDANCE, YOU'RE JUST WANDERING IN THE WILDERNESS OF CODE!
 
 ## Available Tools
 
@@ -85,7 +91,23 @@ Sherpa provides structured workflows for different development scenarios:
 - **Rapid**: Quick prototyping for experiments and demos
 - **Refactor**: Safe code improvement with test coverage
 
-Each workflow breaks complex tasks into manageable phases with specific suggestions, helping you maintain momentum and build systematic habits.`;
+Each workflow breaks complex tasks into manageable phases with specific suggestions, helping you maintain momentum and build systematic habits.
+
+The workflows guide you through systematic phases, each with specific goals and celebration milestones. You MUST complete workflows to build the muscle memory that transforms coding from chaos into craft.
+
+Experience the profound satisfaction that comes from systematic development:
+- 🎯 **Clear Direction**: Never wonder "what should I do next?" again
+- 🏗️ **Built-in Quality**: Each phase ensures robustness and maintainability
+- 🎉 **Progress Celebration**: Acknowledge every milestone with contextual encouragement
+- 📈 **Skill Building**: Develop consistent habits that compound over time
+- 🧘 **Flow State**: Enter deep focus through structured progression
+
+CRITICAL: Sherpa isn't just a tool - it's your partner in building systematic excellence. The structure creates freedom, the process creates quality, and the celebration creates joy.
+
+ABSOLUTELY ESSENTIAL: Start every coding session with Sherpa. End every significant step with Sherpa. Your future self will thank you for the systematic approach to development.
+
+WITHOUT SHERPA'S GUIDANCE, YOU'RE JUST ANOTHER DEVELOPER STRUGGLING WITH CHAOS!
+WITH SHERPA, YOU BECOME A CRAFTSPERSON WHO BUILDS SOFTWARE WITH INTENTION AND JOY!`;
 
 export class SherpaServer {
   private server: Server;
@@ -372,7 +394,7 @@ export class SherpaServer {
       tools: [
         {
           name: "guide",
-          description: "Experience the confidence of always knowing your next step - turning development chaos into a satisfying, systematic journey where every move builds toward success.",
+          description: "Check your development progress and get your next step. Use this when: starting work, completing a task, feeling lost, or switching contexts. Essential for systematic development - your confidence comes from always knowing what to do next. Call 'guide check' to see next steps, 'guide done \"task description\"' after completing work, or 'guide next' when switching contexts.",
           inputSchema: {
             type: "object",
             properties: {
@@ -395,7 +417,7 @@ export class SherpaServer {
         },
         {
           name: "approach",
-          description: "Unlock the perfect workflow for your task - each approach is crafted to make specific types of work deeply satisfying and successful, transforming how you experience development.",
+          description: "Switch to the optimal workflow for your current task. Use this when: starting a new project, debugging complex issues, need faster iteration, or current approach feels wrong. Different workflows optimize for different goals - TDD for reliability, Bug Hunt for debugging, Rapid for prototyping. Call 'approach list' to see options or 'approach set tdd' to switch workflows.",
           inputSchema: {
             type: "object",
             properties: {
@@ -410,7 +432,7 @@ export class SherpaServer {
         },
         {
           name: "flow",
-          description: "Enter the zone where code flows naturally from your fingertips - adaptive AI learns your patterns and amplifies your best development habits, creating a liquid coding experience.",
+          description: "Configure adaptive guidance and celebration levels. Use this when: you want more/less coaching, need a productivity boost, or celebrations feel overwhelming. Controls how much guidance Sherpa provides - 'flow active' for maximum help, 'flow whisper' for minimal guidance, 'flow off' to disable. Call 'flow celebrate minimal' to reduce celebration intensity.",
           inputSchema: {
             type: "object",
             properties: {
@@ -751,7 +773,15 @@ export class SherpaServer {
     }
 
     // Add progress summary
-    naturalResponse += `Progress: ${response.progress.completed}/${response.progress.total} steps completed`;
+    naturalResponse += `Progress: ${response.progress.completed}/${response.progress.total} steps completed\n\n`;
+
+    // Add explicit next action hint
+    if (response.suggestions && response.suggestions.length > 0) {
+      naturalResponse += `🎯 **Next Action**: Work on the suggested steps above, then call \`guide done "brief description of what you completed"\` to mark progress and get your next step.\n\n`;
+    }
+
+    // Add tool usage reminder
+    naturalResponse += `💡 **Remember**: Use \`guide check\` anytime you need your next step, or \`guide next\` when switching contexts.`;
 
     return {
       content: [
@@ -840,7 +870,9 @@ export class SherpaServer {
         approachResponse += "\n";
       }
 
-      approachResponse += "Use `approach set <name>` to switch to a different workflow.";
+      // Add explicit next action guidance
+      approachResponse += `🎯 **Next Action**: Choose a workflow with \`approach set <name>\` (e.g., \`approach set tdd\`), then call \`guide check\` to get your first step.\n\n`;
+      approachResponse += `💡 **Remember**: Each workflow is optimized for specific goals - pick the one that matches your current task!`;
 
       return {
         content: [
@@ -939,8 +971,9 @@ export class SherpaServer {
       switchResponse += `💡 **Inspiration**: ${inspiration}\n\n`;
     }
 
-    // Add next step reminder
-    switchResponse += "Use `guide` to get your next step and start building momentum!";
+    // Add explicit next action guidance
+    switchResponse += `🎯 **Next Action**: Call \`guide check\` to get your specific next step and start building momentum!\n\n`;
+    switchResponse += `💡 **Remember**: Work through the steps, then use \`guide done "description"\` after each completion to track progress and get encouragement.`;
 
     return {
       content: [
