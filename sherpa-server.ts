@@ -394,7 +394,7 @@ export class SherpaServer {
       tools: [
         {
           name: "guide",
-          description: "Check your development progress and get your next step. Use this when: starting work, completing a task, feeling lost, or switching contexts. Essential for systematic development - your confidence comes from always knowing what to do next. Call 'guide check' to see next steps, 'guide done \"task description\"' after completing work, or 'guide next' when switching contexts.",
+          description: "Track development progress and get your next systematic step.\n\nUse this when: starting work, completing tasks, feeling lost, or switching contexts. This tool is essential for maintaining systematic development momentum and always knowing what to do next.\n\nExamples:\n- 'guide check' - See your current phase and next steps\n- 'guide done \"implemented auth validation\"' - Mark step complete, get celebration\n- 'guide next' - Get context-aware next step when switching tasks\n- 'guide tdd' / 'guide bug' - Quick workflow switches\n\nReturns: Current phase, guidance, specific next steps, progress tracking, and contextual celebration to maintain momentum.",
           inputSchema: {
             type: "object",
             properties: {
@@ -417,7 +417,7 @@ export class SherpaServer {
         },
         {
           name: "approach",
-          description: "Switch to the optimal workflow for your current task. Use this when: starting a new project, debugging complex issues, need faster iteration, or current approach feels wrong. Different workflows optimize for different goals - TDD for reliability, Bug Hunt for debugging, Rapid for prototyping. Call 'approach list' to see options or 'approach set tdd' to switch workflows.",
+          description: "Select the optimal workflow for your current development task.\n\nUse this when: starting new projects, debugging complex issues, needing faster iteration, or when your current approach feels misaligned with your goals.\n\nExamples:\n- 'approach list' - View all available workflows with descriptions\n- 'approach set tdd' - Switch to Test-Driven Development workflow\n- 'approach set bug-hunt' - Switch to systematic debugging workflow\n\nWorkflows: TDD (reliability), Bug Hunt (debugging), General (balanced), Rapid (prototyping), Refactor (code improvement).\n\nReturns: Workflow overview, first phase guidance, initial steps, and success inspiration from industry leaders.",
           inputSchema: {
             type: "object",
             properties: {
@@ -432,7 +432,7 @@ export class SherpaServer {
         },
         {
           name: "flow",
-          description: "Configure adaptive guidance and celebration levels. Use this when: you want more/less coaching, need a productivity boost, or celebrations feel overwhelming. Controls how much guidance Sherpa provides - 'flow active' for maximum help, 'flow whisper' for minimal guidance, 'flow off' to disable. Call 'flow celebrate minimal' to reduce celebration intensity.",
+          description: "Configure adaptive AI guidance and celebration intensity levels.\n\nUse this when: adjusting coaching intensity, needing productivity boost, managing celebration overwhelm, or entering deep focus mode.\n\nExamples:\n- 'flow active' - Maximum AI assistance and guidance\n- 'flow whisper' - Ultra-minimal, barely visible guidance\n- 'flow off' - Disable adaptive guidance completely\n- 'flow celebrate minimal' - Reduce celebration intensity\n\nSettings: Guidance modes (on/whisper/active/hint/off), Celebration levels (full/minimal/whisper/off).\n\nReturns: Current flow state configuration and personalized productivity insights.",
           inputSchema: {
             type: "object",
             properties: {
