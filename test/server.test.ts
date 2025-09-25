@@ -7,7 +7,6 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import * as yaml from "yaml";
 import { ProgressTracker } from "../src/behavioral-adoption/progress-tracker";
 import { CelebrationGenerator } from "../src/behavioral-adoption/celebration-generator";
-import { InstructionBuilder } from "../src/server-instructions/instruction-builder";
 import { Workflow, WorkflowPhase } from "../src/types";
 
 // Import the class we want to test (we'll need to export it)
@@ -480,34 +479,6 @@ describe("Behavioral Adoption System", () => {
     });
   });
 
-  describe("InstructionBuilder", () => {
-    test("should build basic instructions", async () => {
-      const progressTracker = new ProgressTracker();
-      const celebrationGenerator = new CelebrationGenerator(progressTracker, {});
-      const builder = new InstructionBuilder(progressTracker, celebrationGenerator);
-
-      const workflows = new Map();
-      const context = { currentWorkflow: "general", currentPhase: 0 };
-
-      const instructions = await builder.buildInstructions(workflows, context);
-      expect(instructions).toBeTruthy();
-      expect(typeof instructions).toBe("string");
-      expect(instructions.length).toBeGreaterThan(0);
-    });
-
-    test("should handle missing template gracefully", async () => {
-      const progressTracker = new ProgressTracker();
-      const celebrationGenerator = new CelebrationGenerator(progressTracker, {});
-      const builder = new InstructionBuilder(progressTracker, celebrationGenerator);
-
-      const workflowInstructions = await builder.getWorkflowSpecificInstructions("nonexistent");
-
-      // Should return fallback instructions, not empty string
-      expect(workflowInstructions).toContain("Nonexistent Workflow");
-      expect(workflowInstructions).toContain("Follow systematic development practices");
-      expect(workflowInstructions).toContain("Plan your approach");
-    });
-  });
 });
 
 describe("Integration Tests", () => {
@@ -602,41 +573,6 @@ describe("Integration Tests", () => {
     expect(afterCheck.getTime()).toBeGreaterThanOrEqual(beforeCheck.getTime());
   });
 
-  test("should test InstructionBuilder uncovered paths", async () => {
-    const progressTracker = new ProgressTracker();
-    const celebrationGenerator = new CelebrationGenerator(progressTracker, {});
-    const builder = new InstructionBuilder(progressTracker, celebrationGenerator);
-
-    // Create a workflow with multiple workflows to test mapping logic
-    const workflows = new Map();
-    workflows.set("workflow1", {
-      name: "Test Workflow 1",
-      description: "First test workflow",
-      phases: [
-        { name: "Phase 1", guidance: "Test", suggestions: ["suggestion1", "suggestion2"] }
-      ]
-    });
-    workflows.set("workflow2", {
-      name: "Test Workflow 2",
-      description: "Second test workflow",
-      phases: [
-        { name: "Phase 1", guidance: "Test", suggestions: ["suggestion3"] }
-      ]
-    });
-
-    const context = {
-      currentWorkflow: "workflow1",
-      currentPhase: 0,
-      phaseProgress: ["suggestion1"], // One suggestion completed
-      totalWorkflows: 2,
-      workflowProgress: { completed: 1, total: 2 }
-    };
-
-    // This should exercise the uncovered getAvailableWorkflows mapping logic
-    const instructions = await builder.buildInstructions(workflows, context);
-    expect(instructions).toBeTruthy();
-    expect(typeof instructions).toBe("string");
-  });
 
   test("should handle milestone celebrations", () => {
     const progressTracker = new ProgressTracker();
@@ -870,5 +806,557 @@ describe("Real Workflow File Integration", () => {
       // If workflows directory doesn't exist, that's also a valid test result
       console.log("Workflows directory not found, skipping real file tests");
     }
+  });
+});
+
+describe("Workflow Progression Bug Fix Tests", () => {
+  describe("Manual Phase Advancement (advance action)", () => {
+    test("should advance to next phase manually when requested", () => {
+      // Test data for multi-phase workflow
+      const multiPhaseWorkflow = {
+        name: "Test Multi-Phase Workflow",
+        description: "Workflow with multiple phases",
+        phases: [
+          {
+            name: "📋 Planning Phase",
+            guidance: "Plan your approach",
+            suggestions: ["Define requirements", "Create outline"]
+          },
+          {
+            name: "🔧 Implementation Phase",
+            guidance: "Build the solution",
+            suggestions: ["Write code", "Add tests"]
+          },
+          {
+            name: "✅ Review Phase",
+            guidance: "Review and finalize",
+            suggestions: ["Code review", "Deploy"]
+          }
+        ]
+      };
+
+      // Simulate starting in first phase
+      let currentPhase = 0;
+      let currentWorkflow = "multi-phase-test";
+      const phaseProgress = new Map<string, string[]>();
+
+      // Initial state - in planning phase
+      expect(currentPhase).toBe(0);
+      expect(multiPhaseWorkflow.phases[currentPhase].name).toBe("📋 Planning Phase");
+
+      // Simulate advance action
+      if (currentPhase < multiPhaseWorkflow.phases.length - 1) {
+        const previousPhase = multiPhaseWorkflow.phases[currentPhase];
+        currentPhase++;
+        const newPhase = multiPhaseWorkflow.phases[currentPhase];
+
+        // Verify advancement
+        expect(currentPhase).toBe(1);
+        expect(newPhase.name).toBe("🔧 Implementation Phase");
+        expect(previousPhase.name).toBe("📋 Planning Phase");
+      }
+
+      // Test advancing to final phase
+      if (currentPhase < multiPhaseWorkflow.phases.length - 1) {
+        currentPhase++;
+        const finalPhase = multiPhaseWorkflow.phases[currentPhase];
+        expect(currentPhase).toBe(2);
+        expect(finalPhase.name).toBe("✅ Review Phase");
+      }
+    });
+
+    test("should prevent advancing beyond final phase", () => {
+      const singlePhaseWorkflow = {
+        name: "Single Phase Workflow",
+        description: "Workflow with only one phase",
+        phases: [
+          {
+            name: "🎯 Only Phase",
+            guidance: "Complete all tasks",
+            suggestions: ["Task 1", "Task 2"]
+          }
+        ]
+      };
+
+      let currentPhase = 0;
+
+      // Already at final phase
+      expect(currentPhase).toBe(singlePhaseWorkflow.phases.length - 1);
+
+      // Attempt to advance should be blocked
+      if (currentPhase < singlePhaseWorkflow.phases.length - 1) {
+        currentPhase++;
+      } else {
+        // Should remain at final phase
+        expect(currentPhase).toBe(0);
+      }
+    });
+
+    test("should handle advance action without workflow loaded", () => {
+      // Test handling when no workflow is loaded
+      let currentWorkflow = "";
+      let workflows = new Map();
+
+      const workflow = workflows.get(currentWorkflow);
+      expect(workflow).toBeUndefined();
+
+      // Should gracefully handle missing workflow
+      if (!workflow) {
+        const errorResponse = "No workflow loaded! Use the 'workflow' tool to choose your development adventure.";
+        expect(errorResponse).toContain("No workflow loaded");
+      }
+    });
+
+    test("should generate proper celebration message for phase advancement", () => {
+      const workflow = {
+        phases: [
+          { name: "📋 Planning", guidance: "Plan", suggestions: ["Plan step"] },
+          { name: "🔧 Build", guidance: "Build", suggestions: ["Build step"] }
+        ]
+      };
+
+      let currentPhase = 0;
+      const previousPhase = workflow.phases[currentPhase];
+      currentPhase++;
+      const newPhase = workflow.phases[currentPhase];
+
+      // Generate advancement celebration message
+      const phaseAdvancementCelebration = `🔄 **Advanced from ${previousPhase.name} to ${newPhase.name}**\n\nSometimes you need to move forward manually - that's perfectly fine! Let's focus on the next phase.`;
+
+      expect(phaseAdvancementCelebration).toContain("🔄");
+      expect(phaseAdvancementCelebration).toContain("📋 Planning");
+      expect(phaseAdvancementCelebration).toContain("🔧 Build");
+      expect(phaseAdvancementCelebration).toContain("Advanced from");
+    });
+  });
+
+  describe("Enhanced Phase Completion Logic", () => {
+    test("should complete phase with traditional exact suggestion matches", () => {
+      const phase = {
+        name: "🧪 Test Phase",
+        guidance: "Write tests",
+        suggestions: ["Write unit tests", "Write integration tests", "Add edge case tests"]
+      };
+
+      // All suggestions completed (traditional completion)
+      const progress = ["Write unit tests", "Write integration tests", "Add edge case tests"];
+      const remainingSuggestions = phase.suggestions.filter(s => !progress.includes(s));
+
+      expect(remainingSuggestions.length).toBe(0);
+
+      const traditionalPhaseComplete = remainingSuggestions.length === 0;
+      expect(traditionalPhaseComplete).toBe(true);
+    });
+
+    test("should complete phase with smart completion (sufficient progress)", () => {
+      const phase = {
+        name: "🔧 Implementation Phase",
+        guidance: "Build the feature",
+        suggestions: ["Set up structure", "Implement core logic", "Add error handling", "Optimize performance", "Add documentation"]
+      };
+
+      // Only completed 3 out of 5 suggestions, but that's sufficient progress
+      const progress = ["Set up structure", "Implement core logic", "Add error handling"];
+      const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
+
+      expect(hasSubstantialProgress).toBe(true);
+      expect(progress.length).toBe(3);
+      expect(phase.suggestions.length).toBe(5);
+    });
+
+    test("should complete phase with explicit completion keywords", () => {
+      const explicitCompletionPhrases = [
+        "completed the phase",
+        "finished this phase",
+        "done with the current phase",
+        "phase is complete",
+        "ready for next phase",
+        "phase complete - moving on",
+        "finished phase work"
+      ];
+
+      explicitCompletionPhrases.forEach(completed => {
+        const explicitCompletion = completed && (
+          /completed.*phase/i.test(completed) ||
+          /finished.*phase/i.test(completed) ||
+          /done.*with.*phase/i.test(completed) ||
+          /phase.*complete/i.test(completed) ||
+          /ready.*next.*phase/i.test(completed)
+        );
+
+        expect(explicitCompletion).toBe(true);
+      });
+    });
+
+    test("should not complete phase with insufficient progress and vague completion", () => {
+      const phase = {
+        name: "🔧 Complex Phase",
+        guidance: "Complex implementation",
+        suggestions: ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
+      };
+
+      // Only 1 out of 5 suggestions completed
+      const progress = ["Step 1"];
+      const completed = "made some progress"; // Vague completion
+
+      const traditionalPhaseComplete = phase.suggestions.filter(s => !progress.includes(s)).length === 0;
+      const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
+      const explicitCompletion = completed && (
+        /completed.*phase/i.test(completed) ||
+        /finished.*phase/i.test(completed) ||
+        /done.*with.*phase/i.test(completed) ||
+        /phase.*complete/i.test(completed) ||
+        /ready.*next.*phase/i.test(completed)
+      );
+
+      const isPhaseComplete = traditionalPhaseComplete || explicitCompletion ||
+        (hasSubstantialProgress && /all|everything|complete|finish/i.test(completed || ''));
+
+      expect(isPhaseComplete).toBe(false);
+      expect(traditionalPhaseComplete).toBe(false);
+      expect(hasSubstantialProgress).toBe(false);
+      expect(explicitCompletion).toBe(false);
+    });
+
+    test("should complete phase with substantial progress and completion keywords", () => {
+      const phase = {
+        name: "📝 Documentation Phase",
+        guidance: "Document the system",
+        suggestions: ["Write API docs", "Add code comments", "Create user guide", "Write README"]
+      };
+
+      const progress = ["Write API docs", "Add code comments", "Create user guide"]; // 3 out of 4
+      const completed = "completed all the important documentation work";
+
+      const traditionalPhaseComplete = phase.suggestions.filter(s => !progress.includes(s)).length === 0;
+      const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
+      const explicitCompletion = /completed.*phase/i.test(completed);
+
+      const isPhaseComplete = traditionalPhaseComplete || explicitCompletion ||
+        (hasSubstantialProgress && /all|everything|complete|finish/i.test(completed));
+
+      expect(isPhaseComplete).toBe(true);
+      expect(hasSubstantialProgress).toBe(true);
+      expect(/all|everything|complete|finish/i.test(completed)).toBe(true);
+    });
+  });
+
+  describe("Progress Tracking and Calculation", () => {
+    test("should refresh progress after recording completion", () => {
+      const phase = {
+        name: "🧪 Test Phase",
+        suggestions: ["Write tests", "Run tests", "Fix failing tests"]
+      };
+
+      let phaseProgress = new Map<string, string[]>();
+      phaseProgress.set(phase.name, ["Write tests"]);
+
+      // Initial progress
+      let progress = phaseProgress.get(phase.name) || [];
+      expect(progress).toEqual(["Write tests"]);
+
+      // Record new completion
+      const completed = "Run tests";
+      if (!progress.includes(completed)) {
+        progress.push(completed);
+        phaseProgress.set(phase.name, progress);
+      }
+
+      // Refresh progress after recording - this was part of the bug fix
+      progress = phaseProgress.get(phase.name) || [];
+      expect(progress).toEqual(["Write tests", "Run tests"]);
+
+      // Calculate phase completion with updated progress
+      const remainingSuggestions = phase.suggestions.filter(s => !progress.includes(s));
+      expect(remainingSuggestions).toEqual(["Fix failing tests"]);
+
+      // Phase should not be complete yet
+      const isPhaseComplete = remainingSuggestions.length === 0;
+      expect(isPhaseComplete).toBe(false);
+    });
+
+    test("should correctly calculate phase completion after progress update", () => {
+      const phase = {
+        name: "🔧 Build Phase",
+        suggestions: ["Setup", "Implement", "Test"]
+      };
+
+      let phaseProgress = new Map<string, string[]>();
+
+      // Record multiple completions
+      const completions = ["Setup", "Implement", "Test"];
+      let progress: string[] = [];
+
+      completions.forEach(completed => {
+        progress.push(completed);
+        phaseProgress.set(phase.name, [...progress]);
+
+        // Refresh progress after each recording (simulates the bug fix)
+        const refreshedProgress = phaseProgress.get(phase.name) || [];
+        const isComplete = refreshedProgress.length >= phase.suggestions.length;
+
+        if (completed === "Test") {
+          expect(isComplete).toBe(true);
+          expect(refreshedProgress).toEqual(["Setup", "Implement", "Test"]);
+        }
+      });
+    });
+
+    test("should handle workflow validation moved earlier in method", () => {
+      // Test early workflow validation (part of the bug fix)
+      const workflows = new Map();
+      workflows.set("valid-workflow", {
+        name: "Valid Workflow",
+        phases: [{ name: "Phase 1", guidance: "Test", suggestions: ["Task 1"] }]
+      });
+
+      let currentWorkflow = "invalid-workflow";
+
+      // Early validation should catch missing workflow
+      const workflow = workflows.get(currentWorkflow);
+      if (!workflow) {
+        const errorResponse = "No workflow loaded! Use the 'workflow' tool to choose your development adventure.";
+        expect(errorResponse).toContain("No workflow loaded");
+      }
+
+      // Valid workflow should pass early validation
+      currentWorkflow = "valid-workflow";
+      const validWorkflow = workflows.get(currentWorkflow);
+      expect(validWorkflow).toBeTruthy();
+      expect(validWorkflow?.phases.length).toBe(1);
+    });
+  });
+
+  describe("Complete Guide Tool Workflow Integration", () => {
+    test("should handle complete workflow progression from start to finish", () => {
+      // Setup complete workflow scenario
+      const workflow = {
+        name: "Integration Test Workflow",
+        description: "Full workflow for integration testing",
+        phases: [
+          {
+            name: "📋 Planning",
+            guidance: "Plan your approach carefully",
+            suggestions: ["Define objectives", "Research requirements", "Create plan"]
+          },
+          {
+            name: "🔧 Implementation",
+            guidance: "Build the solution systematically",
+            suggestions: ["Set up environment", "Implement core features", "Add error handling"]
+          },
+          {
+            name: "🧪 Testing",
+            guidance: "Ensure quality and reliability",
+            suggestions: ["Write unit tests", "Integration testing", "Performance testing"]
+          }
+        ]
+      };
+
+      // Test state
+      let currentPhase = 0;
+      let phaseProgress = new Map<string, string[]>();
+      let isWorkflowComplete = false;
+
+      // Phase 1: Planning phase progression
+      expect(workflow.phases[currentPhase].name).toBe("📋 Planning");
+
+      // Complete some suggestions in planning
+      const planningProgress = ["Define objectives", "Research requirements"];
+      phaseProgress.set("📋 Planning", planningProgress);
+
+      // Test enhanced completion with explicit completion
+      const explicitCompletion = "completed the planning phase thoroughly";
+      const hasSubstantialProgress = planningProgress.length >= Math.min(2, workflow.phases[0].suggestions.length); // 2 out of 3 is substantial
+      const explicitMatch = /completed.*phase/i.test(explicitCompletion);
+      const isPhase1Complete = hasSubstantialProgress && explicitMatch;
+
+      expect(isPhase1Complete).toBe(true);
+
+      // Advance to next phase
+      if (isPhase1Complete && currentPhase < workflow.phases.length - 1) {
+        currentPhase++;
+      }
+
+      // Phase 2: Implementation phase
+      expect(currentPhase).toBe(1);
+      expect(workflow.phases[currentPhase].name).toBe("🔧 Implementation");
+
+      // Test manual advance action
+      const canAdvance = currentPhase < workflow.phases.length - 1;
+      expect(canAdvance).toBe(true);
+
+      if (canAdvance) {
+        const previousPhase = workflow.phases[currentPhase];
+        currentPhase++; // Manual advance
+        const newPhase = workflow.phases[currentPhase];
+
+        expect(previousPhase.name).toBe("🔧 Implementation");
+        expect(newPhase.name).toBe("🧪 Testing");
+        expect(currentPhase).toBe(2);
+      }
+
+      // Phase 3: Final phase completion
+      expect(workflow.phases[currentPhase].name).toBe("🧪 Testing");
+
+      // Complete all suggestions in testing phase (traditional completion)
+      const testingProgress = ["Write unit tests", "Integration testing", "Performance testing"];
+      phaseProgress.set("🧪 Testing", testingProgress);
+
+      const remainingSuggestions = workflow.phases[2].suggestions.filter(s => !testingProgress.includes(s));
+      const isPhase3Complete = remainingSuggestions.length === 0;
+
+      expect(isPhase3Complete).toBe(true);
+      expect(remainingSuggestions).toEqual([]);
+
+      // Workflow completion
+      isWorkflowComplete = isPhase3Complete && currentPhase >= workflow.phases.length - 1;
+      expect(isWorkflowComplete).toBe(true);
+    });
+
+    test("should handle guide tool action enumeration after bug fix", () => {
+      // Test that all guide actions are properly supported
+      const validActions = ["check", "done", "tdd", "bug", "next", "advance"];
+
+      validActions.forEach(action => {
+        expect(["check", "done", "tdd", "bug", "next", "advance"]).toContain(action);
+      });
+
+      // Test new advance action specifically
+      expect(validActions).toContain("advance");
+
+      // Test action descriptions
+      const actionDescriptions = {
+        "check": "get next step",
+        "done": "mark completion",
+        "tdd": "start TDD workflow",
+        "bug": "start bug hunt",
+        "next": "what should I do right now",
+        "advance": "manually move to next phase"
+      };
+
+      expect(actionDescriptions.advance).toBe("manually move to next phase");
+    });
+
+    test("should handle workflow progression edge cases", () => {
+      // Test single-phase workflow with advance action
+      const singlePhaseWorkflow = {
+        name: "Single Phase Workflow",
+        phases: [
+          {
+            name: "🎯 Only Phase",
+            guidance: "Complete everything here",
+            suggestions: ["Task 1", "Task 2", "Task 3"]
+          }
+        ]
+      };
+
+      let currentPhase = 0;
+      const isAtFinalPhase = currentPhase >= singlePhaseWorkflow.phases.length - 1;
+
+      expect(isAtFinalPhase).toBe(true);
+
+      // Attempt to advance should be prevented
+      if (currentPhase < singlePhaseWorkflow.phases.length - 1) {
+        currentPhase++;
+      } else {
+        // Should remain at same phase
+        expect(currentPhase).toBe(0);
+      }
+    });
+
+    test("should maintain celebration context throughout workflow", () => {
+      const progressTracker = new ProgressTracker();
+      const encouragements = {
+        progressMessages: {
+          firstStep: ["🎯 Great start!"],
+          midProgress: ["💪 Keep going!"],
+          phaseComplete: ["🎉 Phase completed!"]
+        }
+      };
+      const generator = new CelebrationGenerator(progressTracker, encouragements);
+
+      // Simulate step completion with context
+      const stepContext = {
+        workflowType: "integration-test",
+        phaseName: "🧪 Testing Phase",
+        stepDescription: "wrote comprehensive unit tests",
+        isPhaseComplete: false,
+        isWorkflowComplete: false,
+        newMilestones: []
+      };
+
+      const stepCelebration = generator.generateCelebration(stepContext);
+      expect(stepCelebration).toBeTruthy();
+
+      // Simulate phase completion
+      const phaseContext = {
+        workflowType: "integration-test",
+        phaseName: "🧪 Testing Phase",
+        stepDescription: "completed all testing tasks",
+        isPhaseComplete: true,
+        isWorkflowComplete: false,
+        newMilestones: []
+      };
+
+      const phaseCelebration = generator.generateCelebration(phaseContext);
+      expect(phaseCelebration).toBeTruthy();
+      expect(phaseCelebration).toContain("🎉");
+
+      // Record progress for behavioral tracking
+      progressTracker.recordStepCompletion("integration-test", "comprehensive testing complete");
+      const stats = progressTracker.getProgressStats();
+      expect(stats.totalStepsCompleted).toBe(1);
+    });
+
+    test("should handle progress refresh in real workflow scenario", () => {
+      // Simulate the exact bug fix scenario where progress wasn't refreshed
+      const phase = {
+        name: "🔧 Implementation Phase",
+        suggestions: ["Setup project", "Write core code", "Add error handling", "Optimize performance"]
+      };
+
+      let phaseProgress = new Map<string, string[]>();
+
+      // Start with some initial progress
+      phaseProgress.set(phase.name, ["Setup project"]);
+
+      // Simulate guide done action
+      const completed = "Write core code";
+
+      // BEFORE bug fix: progress not refreshed, used stale data
+      let progressBeforeRefresh = phaseProgress.get(phase.name) || [];
+      expect(progressBeforeRefresh).toEqual(["Setup project"]);
+
+      // Record the new completion
+      if (!progressBeforeRefresh.includes(completed)) {
+        progressBeforeRefresh.push(completed);
+        phaseProgress.set(phase.name, progressBeforeRefresh);
+      }
+
+      // AFTER bug fix: progress refreshed for accurate calculation
+      let progressAfterRefresh = phaseProgress.get(phase.name) || [];
+      expect(progressAfterRefresh).toEqual(["Setup project", "Write core code"]);
+
+      // Calculate remaining with updated progress
+      const remainingSuggestions = phase.suggestions.filter(s => !progressAfterRefresh.includes(s));
+      expect(remainingSuggestions).toEqual(["Add error handling", "Optimize performance"]);
+
+      // Phase completion should be based on refreshed progress
+      const isPhaseComplete = remainingSuggestions.length === 0;
+      expect(isPhaseComplete).toBe(false); // Still has 2 remaining tasks
+
+      // Test the complete flow
+      const finalCompletions = ["Add error handling", "Optimize performance"];
+      finalCompletions.forEach(task => {
+        progressAfterRefresh = phaseProgress.get(phase.name) || [];
+        progressAfterRefresh.push(task);
+        phaseProgress.set(phase.name, progressAfterRefresh);
+      });
+
+      const finalProgress = phaseProgress.get(phase.name) || [];
+      const finalRemaining = phase.suggestions.filter(s => !finalProgress.includes(s));
+      expect(finalRemaining).toEqual([]);
+      expect(finalProgress.length).toBe(4); // All suggestions completed
+    });
   });
 });

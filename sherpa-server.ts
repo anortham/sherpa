@@ -400,8 +400,8 @@ export class SherpaServer {
             properties: {
               action: {
                 type: "string",
-                enum: ["check", "done", "tdd", "bug", "next"],
-                description: "check = get next step, done = mark completion, tdd = start TDD workflow, bug = start bug hunt, next = what should I do right now"
+                enum: ["check", "done", "tdd", "bug", "next", "advance"],
+                description: "check = get next step, done = mark completion, tdd = start TDD workflow, bug = start bug hunt, next = what should I do right now, advance = manually move to next phase"
               },
               completed: {
                 type: "string",
@@ -513,6 +513,19 @@ export class SherpaServer {
     // Apply learned preferences
     this.celebrationLevel = this.learningEngine.getUserProfile().preferences.celebrationLevel as CelebrationLevel;
 
+    // Get workflow early so advance action can use it
+    const workflow = this.workflows.get(this.currentWorkflow);
+    if (!workflow) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "🏔️ No workflow loaded! Use the 'workflow' tool to choose your development adventure and unlock systematic excellence."
+          }
+        ]
+      };
+    }
+
     // Handle quick shortcuts
     if (action === "tdd") {
       this.currentWorkflow = "tdd";
@@ -544,6 +557,52 @@ export class SherpaServer {
       return this.handleGuide({ action: "check" });
     }
 
+    if (action === "advance") {
+      // Manual phase advancement - let users skip to next phase when needed
+      if (this.currentPhase < workflow.phases.length - 1) {
+        const previousPhase = workflow.phases[this.currentPhase];
+        this.currentPhase++;
+        const newPhase = workflow.phases[this.currentPhase];
+
+        // Record manual advancement for learning
+        this.learningEngine.recordToolUsage("guide-advance", { from: previousPhase.name, to: newPhase.name });
+
+        // Generate phase transition celebration
+        const phaseAdvancementCelebration = `🔄 **Advanced from ${previousPhase.name} to ${newPhase.name}**\n\nSometimes you need to move forward manually - that's perfectly fine! Let's focus on the next phase.`;
+
+        // Generate phase entry celebration for new phase
+        const phaseEntryCelebration = this.celebrationGenerator.generatePhaseEntryCelebration(this.currentWorkflow, newPhase.name);
+
+        let advancementMessage = phaseAdvancementCelebration;
+        if (phaseEntryCelebration) {
+          advancementMessage += `\n\n${phaseEntryCelebration}`;
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${this.filterCelebrationContent(advancementMessage)}\n\n` +
+                    `**${newPhase.name}** (${this.currentPhase + 1}/${workflow.phases.length})\n` +
+                    `${newPhase.guidance}\n\n` +
+                    `**Next steps:**\n` +
+                    newPhase.suggestions.slice(0, 3).map((s: string) => `• ${s}`).join('\n') +
+                    `\n\n🎯 **Next Action**: Work on these steps, then use \`guide done "description"\` to track progress.`
+            }
+          ]
+        };
+      } else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "🎯 You're already in the final phase! Complete the remaining steps or start a new workflow with `approach set <workflow>`."
+            }
+          ]
+        };
+      }
+    }
+
     // Smart workflow detection for any context provided
     let workflowSuggestion = "";
     if (context && action === "check") {
@@ -568,21 +627,8 @@ export class SherpaServer {
     // Record progress tracking
     this.progressTracker.recordProgressCheck();
 
-    const workflow = this.workflows.get(this.currentWorkflow);
-    if (!workflow) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "🏔️ No workflow loaded! Use the 'workflow' tool to choose your development adventure and unlock systematic excellence."
-          }
-        ]
-      };
-    }
-
     const phase = workflow.phases[this.currentPhase];
-    const progress = this.phaseProgress.get(phase.name) || [];
-    const remainingSuggestions = phase.suggestions.filter(s => !progress.includes(s));
+    let progress = this.phaseProgress.get(phase.name) || [];
 
     // Handle step completion with enhanced celebration
     let celebrationMessage = "";
@@ -590,6 +636,7 @@ export class SherpaServer {
 
     if (action === "done" && completed) {
       this.recordProgress(completed);
+      progress = this.phaseProgress.get(phase.name) || []; // Refresh progress after recording
       const stepMilestones = this.progressTracker.recordStepCompletion(this.currentWorkflow, completed);
       if (stepMilestones.length > 0) {
         newMilestones = [...newMilestones, ...stepMilestones];
@@ -600,7 +647,7 @@ export class SherpaServer {
         workflowType: this.currentWorkflow,
         phaseName: phase.name,
         stepDescription: completed,
-        isPhaseComplete: remainingSuggestions.length <= 1, // Will be complete after this step
+        isPhaseComplete: progress.length >= phase.suggestions.length, // Check with updated progress
         isWorkflowComplete: false,
         newMilestones
       };
@@ -608,8 +655,31 @@ export class SherpaServer {
       celebrationMessage = this.celebrationGenerator.generateCelebration(celebrationContext);
     }
 
+    // Calculate remaining suggestions with current progress
+    const remainingSuggestions = phase.suggestions.filter(s => !progress.includes(s));
+
     // Check if should advance to next phase
-    const isPhaseComplete = remainingSuggestions.length === 0;
+    // Enhanced phase completion logic - don't rely solely on exact suggestion matches
+
+    // Multiple ways to complete a phase:
+    // 1. Traditional: all specific suggestions completed (exact matches)
+    const traditionalPhaseComplete = remainingSuggestions.length === 0;
+
+    // 2. Smart completion: sufficient progress made in the phase
+    const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
+
+    // 3. Explicit completion: user indicates they've finished the phase
+    const explicitCompletion = completed && (
+      /completed.*phase/i.test(completed) ||
+      /finished.*phase/i.test(completed) ||
+      /done.*with.*phase/i.test(completed) ||
+      /phase.*complete/i.test(completed) ||
+      /ready.*next.*phase/i.test(completed)
+    );
+
+    const isPhaseComplete = traditionalPhaseComplete || explicitCompletion ||
+      (hasSubstantialProgress && /all|everything|complete|finish/i.test(completed || ''));
+
     const isWorkflowComplete = isPhaseComplete && this.currentPhase >= workflow.phases.length - 1;
 
     if (isPhaseComplete && this.currentPhase < workflow.phases.length - 1) {
