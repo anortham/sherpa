@@ -1,0 +1,50 @@
+name: "Planning & Design"
+description: "Pure planning workflow - research, understand, design, and document before implementation"
+trigger_hints:
+  - "plan"
+  - "design"
+  - "architecture"
+  - "spec"
+  - "requirements"
+  - "analyze"
+  - "research"
+  - "document"
+  - "blueprint"
+  - "strategy"
+  - "planning"
+phases:
+  - name: "🔍 Research & Discovery"
+    guidance: "Understand the landscape before charting your course"
+    suggestions:
+      - "Research existing solutions and approaches"
+      - "Read relevant documentation and specs"
+      - "Identify constraints and limitations"
+      - "Study similar implementations in codebase"
+      - "Gather requirements from stakeholders"
+
+  - name: "🧩 Problem Analysis"
+    guidance: "Break down complexity into manageable pieces"
+    suggestions:
+      - "Define the core problem clearly"
+      - "Identify key components and dependencies"
+      - "Map out data flows and interactions"
+      - "List assumptions that need validation"
+      - "Consider edge cases and failure modes"
+
+  - name: "📐 Solution Design"
+    guidance: "Architect before you build"
+    suggestions:
+      - "Design the overall system architecture"
+      - "Define interfaces and data structures"
+      - "Plan the implementation approach"
+      - "Consider alternative solutions"
+      - "Identify potential technical risks"
+
+  - name: "📋 Documentation & Specification"
+    guidance: "Capture your insights for successful implementation"
+    suggestions:
+      - "Write clear requirements and specifications"
+      - "Document the chosen architecture and rationale"
+      - "Create implementation roadmap with phases"
+      - "Define success criteria and testing approach"
+      - "Prepare handoff materials for implementation"
