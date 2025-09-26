@@ -23,3 +23,7 @@ build/
 
 # Optional: User's custom workflows (if you want to ignore local customizations)
 # .sherpa/*.local.yaml
+
+# Temporary directories
+.coa/
+tmp/

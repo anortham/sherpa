@@ -22,19 +22,12 @@ sherpa/
 ├── src/                                # Core behavioral adoption system
 │   ├── types.ts                       # TypeScript interfaces
 │   ├── behavioral-adoption/           # Behavioral psychology components
+│   │   ├── adaptive-learning-engine.ts # Cross-session learning and adaptation
 │   │   ├── progress-tracker.ts       # Progress monitoring and milestones
 │   │   └── celebration-generator.ts  # Dynamic encouragement system
-│   └── server-instructions/           # Template and instruction system
-│       ├── instruction-builder.ts    # Dynamic instruction generation
-│       └── templates/                # Instruction templates
-│           ├── base-instructions.md  # Core server guidance
-│           ├── encouragements.json   # 100+ contextual messages
-│           └── workflow-specific/    # Per-workflow instructions
-│               ├── tdd-instructions.md
-│               ├── bug-hunt-instructions.md
-│               ├── general-instructions.md
-│               ├── rapid-instructions.md
-│               └── refactor-instructions.md
+│   └── server-instructions/           # Template system
+│       └── templates/                # Encouragement templates
+│           └── encouragements.json   # 100+ contextual celebration messages
 ├── workflows/                          # Default workflow templates
 │   ├── tdd.yaml                       # Test-driven development
 │   ├── bug-hunt.yaml                  # Systematic debugging

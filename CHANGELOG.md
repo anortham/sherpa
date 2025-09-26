@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ **Production Release** - Full implementation of the liquid development experience
 - 🚀 **Comprehensive CI/CD pipeline** with GitHub Actions for automated testing and release
 - 📚 **Complete documentation** with CONTRIBUTING.md, enhanced README with badges
-- ⚡ **Enhanced installation** with Bun detection, npm fallbacks, post-install verification
+- ⚡ **Enhanced installation** with Bun detection, post-install verification
 - 🔧 **Robust internal systems** with retry logic, error recovery, startup validation
 - 🛡️ **Comprehensive error handling** with graceful fallbacks and detailed logging
 
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Race condition safety** in concurrent file operations
 
 ### Technical Improvements
-- **201 comprehensive tests** (100% passing) covering all error scenarios
+- **222 comprehensive tests** (220 passing) covering all error scenarios
 - **Retry mechanisms** for file operations with exponential backoff
 - **Graceful degradation** for all failure scenarios
 - **Cross-session learning** with robust profile persistence
@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Success Stories**: Shares real-world examples from companies like Netflix, GitHub
 
 #### Technical Excellence
-- **201 comprehensive tests** with 789 expect() calls (100% passing)
+- **222 comprehensive tests** with 888 expect() calls (220 passing)
 - **TypeScript safety** throughout the codebase
 - **YAML workflow templates** for easy customization
 - **Comprehensive logging** with automatic rotation
@@ -107,7 +107,7 @@ Comprehensive testing covering:
 ### Architecture
 
 - **Global Installation Model**: Workflows available across all projects
-- **Behavioral Adoption System**: ProgressTracker, CelebrationGenerator, InstructionBuilder
+- **Behavioral Adoption System**: ProgressTracker, CelebrationGenerator, AdaptiveLearningEngine
 - **Adaptive Learning Engine**: Cross-session user behavior analysis
 - **Template System**: Dynamic instruction generation with Handlebars-style substitution
 - **MCP Protocol**: Full compliance with Model Context Protocol v1.18.1
@@ -119,7 +119,7 @@ Comprehensive testing covering:
 Sherpa is built on the principle that **systematic development should feel joyful, not burdensome**. Through positive reinforcement and behavioral psychology, we help AI agents develop better coding habits naturally.
 
 ### Key Metrics Achieved
-- **201 tests** - Comprehensive coverage of all scenarios
+- **222 tests** - Comprehensive coverage of all scenarios
 - **3 tools only** - Minimal MCP footprint for unobtrusive experience
 - **100% TypeScript** - Type safety throughout
 - **Cross-session persistence** - Behavioral adaptation across sessions

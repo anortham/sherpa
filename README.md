@@ -4,7 +4,7 @@
 [![NPM Version](https://img.shields.io/npm/v/sherpa-mcp.svg)](https://www.npmjs.com/package/sherpa-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue.svg)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-201%20passing-green.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-220%20passing-green.svg)](#testing)
 
 **MCP server that guides AI agents through systematic development workflows using behavioral adoption and positive reinforcement**
 
@@ -31,7 +31,13 @@ Studies show systematic workflows reduce bugs by 60%+ and increase developer con
 
 ### 1. Install Dependencies
 
+**Requirements:** This project requires [Bun](https://bun.sh) for optimal performance.
+
 ```bash
+# Install Bun if you haven't already:
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies:
 bun install
 ```
 
@@ -304,16 +310,16 @@ bun run reset  # Reinstall default workflows
 
 Sherpa's behavioral adoption system consists of:
 
+- **Adaptive Learning Engine** (`src/behavioral-adoption/adaptive-learning-engine.ts`): Tracks user patterns and provides personalized guidance
 - **Progress Tracker** (`src/behavioral-adoption/progress-tracker.ts`): Monitors workflow completion, tracks milestones, and maintains usage statistics
 - **Celebration Generator** (`src/behavioral-adoption/celebration-generator.ts`): Creates contextual encouragement and success celebrations
-- **Instruction Builder** (`src/server-instructions/instruction-builder.ts`): Generates dynamic, template-based instructions
-- **Encouragements System** (`src/server-instructions/templates/encouragements.json`): 100+ contextual encouragement messages
+- **Encouragements System** (`src/server-instructions/templates/encouragements.json`): 100+ contextual encouragement messages organized by workflow type and context
 
-### Template System
+### Core Architecture
 
-- **Base Instructions** (`src/server-instructions/templates/base-instructions.md`): Core server guidance
-- **Workflow-Specific Templates** (`src/server-instructions/templates/workflow-specific/`): Specialized instructions for each workflow type
-- **Dynamic Content**: Handlebars-style template substitution with real-time context
+- **MCP Server** (`sherpa-server.ts`): Main Model Context Protocol server with integrated behavioral system
+- **Workflow Engine**: YAML-based workflow definitions with phase-by-phase guidance
+- **File-based Logging**: All behavioral events and progress logged to `~/.sherpa/logs/`
 
 ## Contributing
 
@@ -328,8 +334,11 @@ bun install
 # Run tests
 bun test
 
-# Check server startup
+# Check server startup (for testing)
 bun run start
+
+# Initialize user workflows
+bun run setup
 
 # View logs during development
 bun run logs

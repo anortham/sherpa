@@ -37,7 +37,7 @@ Sherpa transforms AI-assisted development through the "liquid experience" - guid
 ## 🚀 Production Ready
 
 ### ✅ Comprehensive Testing
-- **201 tests** with **789 expect() calls** (100% passing)
+- **222 tests** with **888 expect() calls** (220 passing)
 - **Complete error scenario coverage**: File system errors, corrupted data, race conditions
 - **Edge case handling**: Network failures, permission issues, concurrent access
 
@@ -50,7 +50,7 @@ Sherpa transforms AI-assisted development through the "liquid experience" - guid
 ### 📦 Easy Installation
 - **One-command setup**: `bun run setup` creates global configuration
 - **Bun detection** with helpful installation guidance
-- **npm fallback support** for users without Bun
+- **Clear Bun requirement** with helpful installation guidance
 - **Post-install verification** ensures everything works correctly
 
 ## 📈 Behavioral Impact

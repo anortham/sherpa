@@ -804,7 +804,7 @@ describe("Real Workflow File Integration", () => {
       }
     } catch (error) {
       // If workflows directory doesn't exist, that's also a valid test result
-      console.log("Workflows directory not found, skipping real file tests");
+      // Note: Workflows directory not found, skipping real file tests
     }
   });
 });

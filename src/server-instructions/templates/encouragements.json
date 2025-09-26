@@ -1,0 +1,192 @@
+{
+  "phaseEntry": {
+    "general": [
+      "Ready to dive into systematic development! 🎯",
+      "Time to transform ideas into reality! ⚡",
+      "Let's build something amazing step by step! 🚀",
+      "Your structured approach is already paying off! 💪",
+      "Every expert was once a beginner - you're on the right path! 🌟"
+    ],
+    "tdd": [
+      "Welcome to the TDD laboratory! Time to write failing tests first! 🧪",
+      "Red, Green, Refactor - the rhythm of reliable code! 🔴🟢🔄",
+      "Testing first means confidence later! Let's build rock-solid code! 🏗️",
+      "TDD transforms development from guesswork into science! 🔬",
+      "Time to write tests that make your future self proud! ✨"
+    ],
+    "bug-hunt": [
+      "Detective mode activated! Time to solve this mystery! 🕵️",
+      "Every bug is a learning opportunity in disguise! 🐛➡️💡",
+      "Systematic debugging beats random clicking every time! 🎯",
+      "You're about to turn chaos into clarity! 🔍",
+      "The bug doesn't stand a chance against your methodical approach! 🏹"
+    ],
+    "rapid": [
+      "Speed mode engaged! Let's prototype something amazing! ⚡",
+      "Fast iterations lead to faster insights! 🔄",
+      "Perfect is the enemy of done - let's ship something! 🚢",
+      "Rapid prototyping: where ideas meet reality! 💨",
+      "Time to move fast and build things! 🏃‍♂️"
+    ],
+    "refactor": [
+      "Time to polish this code into a masterpiece! ✨",
+      "Refactoring: making good code even better! 📈",
+      "Clean code is a love letter to your future self! 💝",
+      "Every refactor is an investment in maintainability! 💰",
+      "Let's turn complexity into simplicity! 🎭"
+    ]
+  },
+  "progressMessages": {
+    "step_completed": [
+      "Excellent progress! One step closer to mastery! 🎯",
+      "That's the systematic approach in action! 💪",
+      "Building momentum one step at a time! 🚀",
+      "Your methodical progress is inspiring! ⭐",
+      "Keep going - you're in the flow! 🌊",
+      "Each step builds the foundation for the next! 🏗️",
+      "Consistent progress beats sporadic brilliance! 📈",
+      "You're making it look easy! 😎"
+    ],
+    "phase_completed": [
+      "Phase completed! Your systematic approach is working! 🎉",
+      "Another phase conquered through structured thinking! 🏆",
+      "Milestone achieved! The workflow is guiding you well! 🎪",
+      "Phase mastery unlocked! On to the next challenge! 🔓",
+      "Structured development for the win! 🥇",
+      "That's how professionals work - phase by phase! 👑",
+      "Your discipline is showing in every completed phase! 💎"
+    ],
+    "workflow_completed": [
+      "Workflow mastered! You've turned chaos into systematic success! 🎊",
+      "From start to finish - that's how it's done! 🏁",
+      "Complete workflow execution! You're building serious development habits! 🏆",
+      "End-to-end excellence! This is what systematic development looks like! 👑",
+      "Workflow conquered! You've proven the power of structure! 💪"
+    ]
+  },
+  "workflowCompletion": {
+    "tdd": [
+      "TDD cycle complete! You've built quality into every line! 🔬",
+      "Red-Green-Refactor mastery achieved! Your tests are bulletproof! 🛡️",
+      "TDD workflow conquered! Confidence through testing! 🎯",
+      "Test-first thinking has created rock-solid code! 🏔️"
+    ],
+    "bug-hunt": [
+      "Mystery solved! Another bug eliminated through systematic investigation! 🕵️‍♂️",
+      "Bug hunt successful! Your methodical approach cracked the case! 🔍",
+      "From chaos to clarity - that's debugging mastery! 💡",
+      "Systematic debugging for the win! Problem solved! 🎯"
+    ],
+    "rapid": [
+      "Rapid prototype complete! Speed and quality in perfect harmony! ⚡",
+      "Fast iteration cycle mastered! From idea to reality in record time! 🚀",
+      "Rapid development success! Proof that speed doesn't sacrifice quality! 🏃‍♂️",
+      "Quick wins through systematic rapid development! 💨"
+    ],
+    "refactor": [
+      "Refactor complete! Code clarity achieved through systematic improvement! ✨",
+      "Clean code mastery! Your future self will thank you! 💝",
+      "Refactoring excellence! Complexity transformed into elegance! 🎭",
+      "Code quality elevated through methodical refactoring! 📈"
+    ],
+    "general": [
+      "General workflow mastered! Balanced development at its finest! ⚖️",
+      "Comprehensive development cycle complete! 🔄",
+      "Structured approach successful! All aspects covered! 📋",
+      "Holistic workflow execution! Professional development in action! 👔"
+    ]
+  },
+  "toolUsageEncouragement": [
+    "Great tool selection! You're building systematic habits! 🛠️",
+    "Each tool use strengthens your workflow muscle! 💪",
+    "Consistent tool usage shows developing mastery! 📈",
+    "You're leveraging structure to build better software! 🏗️",
+    "Tool mastery leads to workflow fluency! 🎯",
+    "Smart tooling choices accelerate development! ⚡",
+    "Your systematic approach is becoming second nature! 🌟"
+  ],
+  "reminderMessages": [
+    "Remember: small, consistent steps build lasting habits! 👣",
+    "Every workflow completion makes the next one easier! 📈",
+    "Structure isn't restriction - it's the foundation of creativity! 🎨",
+    "Professional developers use systematic approaches for a reason! 👔",
+    "You're not just writing code - you're building discipline! 💎",
+    "Each structured session compounds into mastery! 🏆",
+    "Great developers aren't born - they're systematically built! 🔨"
+  ],
+  "milestones": {
+    "first_workflow": [
+      "🎉 First workflow completed! You've taken the first step toward systematic development mastery!",
+      "🌟 Workflow #1 in the books! The journey of a thousand workflows begins with one!",
+      "🎯 Initial workflow success! You're already building better development habits!"
+    ],
+    "workflow_streak": [
+      "🔥 Workflow streak active! Consistency is the key to mastery!",
+      "📈 Streak building! Each workflow strengthens your systematic approach!",
+      "💪 Consistent workflow usage! You're developing serious discipline!"
+    ],
+    "multi_workflow": [
+      "🎪 Multi-workflow mastery! You're exploring different systematic approaches!",
+      "🗺️ Workflow diversity achieved! Adapting structure to context!",
+      "🎭 Workflow flexibility! Using the right structure for each situation!"
+    ],
+    "efficiency": [
+      "⚡ Efficiency milestone! Your workflow execution is accelerating!",
+      "🚀 Speed and structure in harmony! Professional development habits!",
+      "⏰ Time mastery through systematic approach!"
+    ]
+  },
+  "contextualEncouragement": {
+    "stuck": [
+      "Stuck points are learning opportunities! Your systematic approach will break through! 🔓",
+      "Even the best developers hit walls - your structure will find the way! 🏗️",
+      "Challenges are what make the victory meaningful! Keep going! 💪",
+      "This difficulty will make your eventual success even sweeter! 🍯"
+    ],
+    "switching_workflows": [
+      "Smart workflow adaptation! Different problems need different structures! 🧠",
+      "Workflow flexibility shows developing mastery! 🎯",
+      "Adapting structure to context - that's professional thinking! 👔",
+      "Right tool for the right job! Workflow wisdom in action! 🛠️"
+    ],
+    "quick_completion": [
+      "Lightning fast completion! Structure enables speed! ⚡",
+      "Efficiency through systematic approach! Well done! 🎯",
+      "Fast and structured - the best of both worlds! 🚀",
+      "Quick wins through methodical execution! 💨"
+    ],
+    "thorough_execution": [
+      "Thorough and systematic! Quality through structure! 💎",
+      "Methodical excellence! Every step executed with care! 🏆",
+      "Comprehensive approach! This is how professionals work! 👑",
+      "Attention to detail through systematic process! 🔍"
+    ]
+  },
+  "successStories": {
+    "tdd": [
+      "Kent Beck at Chrysler used TDD to transform legacy systems - structure creates confidence!",
+      "Google's testing culture built on TDD principles has enabled massive scale reliability!",
+      "Netflix uses TDD practices to ensure their platform handles millions of users seamlessly!"
+    ],
+    "bug-hunt": [
+      "John Carmack's systematic debugging approach at id Software created gaming legends!",
+      "NASA's methodical bug-hunting processes have kept astronauts safe for decades!",
+      "Stack Overflow's systematic approach to problem-solving serves millions daily!"
+    ],
+    "rapid": [
+      "Facebook's 'move fast' philosophy, balanced with systematic practices, built a global platform!",
+      "Spotify's rapid iteration cycles, structured through systematic development, revolutionized music!",
+      "Tesla's rapid prototyping, guided by systematic engineering, is transforming transportation!"
+    ],
+    "refactor": [
+      "Martin Fowler's systematic refactoring techniques have improved codebases worldwide!",
+      "Shopify's continuous refactoring culture enables rapid feature development at scale!",
+      "GitHub's systematic code improvement practices serve millions of developers daily!"
+    ],
+    "general": [
+      "The most successful software companies all share one thing: systematic development practices!",
+      "Industry leaders consistently use structured approaches to build reliable software!",
+      "Every major tech breakthrough was built on systematic, disciplined development!"
+    ]
+  }
+}

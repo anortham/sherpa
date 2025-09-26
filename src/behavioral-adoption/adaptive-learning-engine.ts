@@ -125,7 +125,8 @@ export class AdaptiveLearningEngine {
           this.currentSession.celebrationLevel = this.userProfile.preferences.celebrationLevel;
         }
       } catch (parseError) {
-        console.error('Profile data corrupted, using defaults:', parseError);
+        // Profile data corrupted, using defaults - log to file instead of console
+        await this.logToFile('Profile data corrupted, using defaults', parseError);
         // Continue with default profile
         await this.saveUserProfile();
       }
@@ -297,30 +298,53 @@ export class AdaptiveLearningEngine {
 
   private handleFileOperationError(error: any, operationName: string): void {
     const errorCode = error?.code;
+    let errorMessage = '';
     switch (errorCode) {
       case 'ENOENT':
-        console.error(`Directory path does not exist for ${operationName}:`, this.sherpaHome);
+        errorMessage = `Directory path does not exist for ${operationName}: ${this.sherpaHome}`;
         break;
       case 'EACCES':
       case 'EPERM':
-        console.error(`Permission denied for ${operationName}:`, this.sherpaHome);
+        errorMessage = `Permission denied for ${operationName}: ${this.sherpaHome}`;
         break;
       case 'ENOSPC':
-        console.error(`No space left on device for ${operationName}:`, this.sherpaHome);
+        errorMessage = `No space left on device for ${operationName}: ${this.sherpaHome}`;
         break;
       case 'EROFS':
-        console.error(`Read-only file system, cannot ${operationName}:`, this.sherpaHome);
+        errorMessage = `Read-only file system, cannot ${operationName}: ${this.sherpaHome}`;
         break;
       case 'ENOTDIR':
-        console.error(`Invalid directory path for ${operationName}:`, this.sherpaHome);
+        errorMessage = `Invalid directory path for ${operationName}: ${this.sherpaHome}`;
         break;
       case 'EINVAL':
-        console.error(`Invalid argument for ${operationName}:`, this.sherpaHome);
+        errorMessage = `Invalid argument for ${operationName}: ${this.sherpaHome}`;
         break;
       default:
-        console.error(`Failed to ${operationName}:`, error);
+        errorMessage = `Failed to ${operationName}: ${error?.message || 'Unknown error'}`;
     }
+
+    // Log to file instead of console to avoid breaking MCP protocol
+    this.logToFile(errorMessage, error).catch(() => {});
+
     // Never throw - system should continue working even if operation fails
+  }
+
+  private async logToFile(message: string, error?: any): Promise<void> {
+    try {
+      const logsDir = path.join(this.sherpaHome, 'logs');
+      await fs.mkdir(logsDir, { recursive: true });
+
+      const today = new Date().toISOString().split('T')[0];
+      const logFile = path.join(logsDir, `sherpa-${today}.log`);
+
+      const timestamp = new Date().toISOString();
+      const errorDetails = error ? ` | Error: ${error.message || error}` : '';
+      const logEntry = `[${timestamp}] ${message}${errorDetails}\n`;
+
+      await fs.appendFile(logFile, logEntry);
+    } catch (logError) {
+      // Silent fail - cannot log to console in MCP server
+    }
   }
 
   recordToolUsage(toolName: string, args: any): void {
