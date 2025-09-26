@@ -655,15 +655,16 @@ export class SherpaServer {
       celebrationMessage = this.celebrationGenerator.generateCelebration(celebrationContext);
     }
 
-    // Calculate remaining suggestions with current progress
-    const remainingSuggestions = phase.suggestions.filter(s => !progress.includes(s));
+    // Calculate remaining suggestions - use intelligent completion detection
+    // Instead of requiring exact matches, track completion by counting user entries
+    const remainingSuggestions = Math.max(0, phase.suggestions.length - progress.length);
 
     // Check if should advance to next phase
     // Enhanced phase completion logic - don't rely solely on exact suggestion matches
 
     // Multiple ways to complete a phase:
-    // 1. Traditional: all specific suggestions completed (exact matches)
-    const traditionalPhaseComplete = remainingSuggestions.length === 0;
+    // 1. Traditional: all steps completed (by count, not exact match)
+    const traditionalPhaseComplete = remainingSuggestions === 0;
 
     // 2. Smart completion: sufficient progress made in the phase
     const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
@@ -709,7 +710,8 @@ export class SherpaServer {
     // Build enhanced response
     const currentPhase = workflow.phases[this.currentPhase];
     const currentProgress = this.phaseProgress.get(currentPhase.name) || [];
-    const currentRemaining = currentPhase.suggestions.filter(s => !currentProgress.includes(s));
+    // Show all suggestions - users can track progress by count rather than exact matches
+    const currentRemaining = currentPhase.suggestions;
 
     let response: any = {
       workflow: workflow.name,
@@ -720,7 +722,7 @@ export class SherpaServer {
       progress: {
         completed: currentProgress.length,
         total: currentPhase.suggestions.length,
-        remaining: currentRemaining.length
+        remaining: Math.max(0, currentPhase.suggestions.length - currentProgress.length)
       }
     };
 
