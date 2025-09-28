@@ -138,3 +138,11 @@ export interface LearningSession {
     flowStateTime: number;
   };
 }
+
+export interface WorkflowState {
+  currentWorkflow: string;
+  currentPhase: number;
+  phaseProgress: Record<string, string[]>;
+  lastUpdated: Date;
+  sessionStartTime: Date;
+}

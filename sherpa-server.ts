@@ -42,7 +42,7 @@ import * as yaml from "yaml";
 import { AdaptiveLearningEngine } from "./src/behavioral-adoption/adaptive-learning-engine";
 import { CelebrationGenerator } from "./src/behavioral-adoption/celebration-generator";
 import { Milestone, ProgressTracker } from "./src/behavioral-adoption/progress-tracker";
-import { AdaptiveHint, Workflow } from "./src/types";
+import { AdaptiveHint, Workflow, WorkflowState } from "./src/types";
 
 // Types moved to src/types.ts
 
@@ -122,10 +122,12 @@ export class SherpaServer {
   private encouragements: any;
   private celebrationLevel: CelebrationLevel = "full";
   private learningEngine: AdaptiveLearningEngine;
+  private workflowStateFile: string;
 
   constructor() {
     this.sherpaHome = path.join(os.homedir(), ".sherpa");
     this.logsDir = path.join(this.sherpaHome, "logs");
+    this.workflowStateFile = path.join(this.sherpaHome, "workflow-state.json");
 
     // Initialize behavioral adoption system
     this.progressTracker = new ProgressTracker();
@@ -153,6 +155,7 @@ export class SherpaServer {
     this.setupHandlers();
     this.validateStartup();
     this.loadWorkflows();
+    this.loadWorkflowState();
   }
 
   private async validateStartup(): Promise<void> {
@@ -353,6 +356,59 @@ export class SherpaServer {
     }
   }
 
+  private async saveWorkflowState(): Promise<void> {
+    try {
+      const state: WorkflowState = {
+        currentWorkflow: this.currentWorkflow,
+        currentPhase: this.currentPhase,
+        phaseProgress: Object.fromEntries(this.phaseProgress),
+        lastUpdated: new Date(),
+        sessionStartTime: new Date()
+      };
+
+      await fs.writeFile(this.workflowStateFile, JSON.stringify(state, null, 2));
+      this.log("DEBUG", `Workflow state saved: ${this.currentWorkflow} phase ${this.currentPhase}`);
+    } catch (error) {
+      this.log("WARN", `Failed to save workflow state: ${error}`);
+    }
+  }
+
+  private async loadWorkflowState(): Promise<void> {
+    try {
+      const content = await fs.readFile(this.workflowStateFile, 'utf-8');
+      const state: WorkflowState = JSON.parse(content);
+
+      // Only restore state if it's recent (within 24 hours) to avoid stale state
+      const lastUpdated = new Date(state.lastUpdated);
+      const hoursSinceUpdate = (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceUpdate < 24) {
+        this.currentWorkflow = state.currentWorkflow;
+        this.currentPhase = state.currentPhase;
+        this.phaseProgress = new Map(Object.entries(state.phaseProgress));
+        this.log("INFO", `Restored workflow state: ${this.currentWorkflow} phase ${this.currentPhase}`);
+      } else {
+        this.log("INFO", "Workflow state too old, starting fresh");
+        await this.clearWorkflowState();
+      }
+    } catch (error) {
+      // No existing state file or invalid - start fresh
+      this.log("DEBUG", "No existing workflow state found, starting fresh");
+    }
+  }
+
+  private async clearWorkflowState(): Promise<void> {
+    try {
+      await fs.unlink(this.workflowStateFile);
+    } catch (error) {
+      // File doesn't exist - that's fine
+    }
+
+    // Reset to defaults
+    this.currentWorkflow = "general";
+    this.currentPhase = 0;
+    this.phaseProgress.clear();
+  }
 
   private getCurrentPhaseName(): string {
     const workflow = this.workflows.get(this.currentWorkflow);
@@ -456,17 +512,17 @@ export class SherpaServer {
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (request.params.name === "guide") {
-        return this.handleGuide(request.params.arguments);
+        return await this.handleGuide(request.params.arguments);
       } else if (request.params.name === "approach") {
-        return this.handleApproach(request.params.arguments);
+        return await this.handleApproach(request.params.arguments);
       } else if (request.params.name === "flow") {
         return this.handleFlow(request.params.arguments);
       } else if (request.params.name === "next") {
         // Backward compatibility
-        return this.handleGuide(request.params.arguments);
+        return await this.handleGuide(request.params.arguments);
       } else if (request.params.name === "workflow") {
         // Backward compatibility
-        return this.handleApproach(request.params.arguments);
+        return await this.handleApproach(request.params.arguments);
       }
       throw new Error(`Unknown tool: ${request.params.name}`);
     });
@@ -501,7 +557,7 @@ export class SherpaServer {
     });
   }
 
-  private handleGuide(args: any): { content: { type: string; text: string }[] } {
+  private async handleGuide(args: any): Promise<{ content: { type: string; text: string }[] }> {
     const safeArgs = args ?? {};
     const action = safeArgs.action ?? "check";
     const completed = safeArgs.completed;
@@ -532,7 +588,8 @@ export class SherpaServer {
       this.currentPhase = 0;
       this.phaseProgress.clear();
       this.learningEngine.recordWorkflowUsage("tdd", context);
-      return this.handleGuide({ action: "check" });
+      await this.saveWorkflowState();
+      return await this.handleGuide({ action: "check" });
     }
 
     if (action === "bug") {
@@ -540,7 +597,8 @@ export class SherpaServer {
       this.currentPhase = 0;
       this.phaseProgress.clear();
       this.learningEngine.recordWorkflowUsage("bug-hunt", context);
-      return this.handleGuide({ action: "check" });
+      await this.saveWorkflowState();
+      return await this.handleGuide({ action: "check" });
     }
 
     if (action === "next") {
@@ -552,9 +610,10 @@ export class SherpaServer {
           this.currentPhase = 0;
           this.phaseProgress.clear();
           this.learningEngine.recordWorkflowUsage(suggestedWorkflow, context);
+          await this.saveWorkflowState();
         }
       }
-      return this.handleGuide({ action: "check" });
+      return await this.handleGuide({ action: "check" });
     }
 
     if (action === "advance") {
@@ -635,7 +694,7 @@ export class SherpaServer {
     let newMilestones: Milestone[] = [];
 
     if (action === "done" && completed) {
-      this.recordProgress(completed);
+      await this.recordProgress(completed);
       progress = this.phaseProgress.get(phase.name) || []; // Refresh progress after recording
       const stepMilestones = this.progressTracker.recordStepCompletion(this.currentWorkflow, completed);
       if (stepMilestones.length > 0) {
@@ -660,14 +719,14 @@ export class SherpaServer {
     const remainingSuggestions = Math.max(0, phase.suggestions.length - progress.length);
 
     // Check if should advance to next phase
-    // Enhanced phase completion logic - don't rely solely on exact suggestion matches
+    // Enhanced phase completion logic with smarter semantic understanding
 
     // Multiple ways to complete a phase:
-    // 1. Traditional: all steps completed (by count, not exact match)
-    const traditionalPhaseComplete = remainingSuggestions === 0;
+    // 1. Traditional: enough steps completed relative to phase size
+    const traditionalPhaseComplete = progress.length >= phase.suggestions.length;
 
-    // 2. Smart completion: sufficient progress made in the phase
-    const hasSubstantialProgress = progress.length >= Math.min(3, phase.suggestions.length);
+    // 2. Smart completion: sufficient meaningful progress for phase goals
+    const hasSubstantialProgress = progress.length >= Math.max(2, Math.ceil(phase.suggestions.length * 0.6));
 
     // 3. Explicit completion: user indicates they've finished the phase
     const explicitCompletion = completed && (
@@ -675,11 +734,20 @@ export class SherpaServer {
       /finished.*phase/i.test(completed) ||
       /done.*with.*phase/i.test(completed) ||
       /phase.*complete/i.test(completed) ||
-      /ready.*next.*phase/i.test(completed)
+      /ready.*next.*phase/i.test(completed) ||
+      /moving.*to.*next/i.test(completed)
     );
 
-    const isPhaseComplete = traditionalPhaseComplete || explicitCompletion ||
-      (hasSubstantialProgress && /all|everything|complete|finish/i.test(completed || ''));
+    // 4. Semantic completion: check if recent work matches phase goals
+    const semanticCompletion = this.isPhaseSemanticallComplete(phase, progress, completed);
+
+    // 5. Natural completion indicators in the work description
+    const naturalCompletion = completed && (
+      /all.*done|everything.*working|fully.*implemented|complete.*working/i.test(completed) ||
+      (hasSubstantialProgress && /done|working|implemented|fixed|tested|ready/i.test(completed))
+    );
+
+    const isPhaseComplete = traditionalPhaseComplete || explicitCompletion || semanticCompletion || naturalCompletion;
 
     const isWorkflowComplete = isPhaseComplete && this.currentPhase >= workflow.phases.length - 1;
 
@@ -696,6 +764,7 @@ export class SherpaServer {
       celebrationMessage = celebrationMessage ? `${celebrationMessage}\n\n${phaseCompletionCelebration}` : phaseCompletionCelebration;
 
       this.currentPhase++;
+      await this.saveWorkflowState();
 
       // Add phase entry celebration for new phase
       if (this.currentPhase < workflow.phases.length) {
@@ -704,12 +773,24 @@ export class SherpaServer {
         celebrationMessage = `${celebrationMessage}\n\n${phaseEntryCelebration}`;
       }
 
-      return this.handleGuide({ action: "check" });
+      // Don't recurse - continue with the flow to show the new phase
+      // The rest of the method will handle building the response for the new phase
     }
 
     // Build enhanced response
     const currentPhase = workflow.phases[this.currentPhase];
     const currentProgress = this.phaseProgress.get(currentPhase.name) || [];
+
+    // Calculate accurate progress including any completed work in current action
+    let actualProgress = currentProgress.length;
+
+    // If we just completed work and it advanced phase, show completion of previous phase
+    // If we're showing a new phase due to advancement, show that we've made progress
+    if (action === "done" && completed && isPhaseComplete && this.currentPhase > 0) {
+      // Just advanced to new phase - show new phase with fresh start
+      actualProgress = 0; // New phase starts fresh
+    }
+
     // Show all suggestions - users can track progress by count rather than exact matches
     const currentRemaining = currentPhase.suggestions;
 
@@ -720,9 +801,12 @@ export class SherpaServer {
       suggestions: currentRemaining,
       phase_number: `${this.currentPhase + 1}/${workflow.phases.length}`,
       progress: {
-        completed: currentProgress.length,
+        completed: actualProgress,
         total: currentPhase.suggestions.length,
-        remaining: Math.max(0, currentPhase.suggestions.length - currentProgress.length)
+        remaining: Math.max(0, currentPhase.suggestions.length - actualProgress),
+        phase_name: currentPhase.name,
+        phase_number: this.currentPhase + 1,
+        total_phases: workflow.phases.length
       }
     };
 
@@ -844,8 +928,9 @@ export class SherpaServer {
       naturalResponse += `💡 **Inspiration**: ${inspiration}\n\n`;
     }
 
-    // Add progress summary
-    naturalResponse += `Progress: ${response.progress.completed}/${response.progress.total} steps completed\n\n`;
+    // Add progress summary with better context
+    const progressSummary = this.generateProgressSummary(response.progress, isPhaseComplete, action === "done");
+    naturalResponse += `${progressSummary}\n\n`;
 
     // Add explicit next action hint
     if (response.suggestions && response.suggestions.length > 0) {
@@ -865,7 +950,7 @@ export class SherpaServer {
     };
   }
 
-  private handleApproach(args: any) {
+  private async handleApproach(args: any) {
     const safeArgs = args ?? {};
     const set = safeArgs.set ?? "list";
 
@@ -978,6 +1063,9 @@ export class SherpaServer {
     this.currentWorkflow = set;
     this.currentPhase = 0;
     this.phaseProgress.clear();
+
+    // Save state after workflow change
+    await this.saveWorkflowState();
 
     // Record workflow usage for learning
     this.learningEngine.recordWorkflowUsage(set);
@@ -1322,14 +1410,102 @@ export class SherpaServer {
     }
   }
 
-  private recordProgress(completed: string) {
+  private isPhaseSemanticallComplete(phase: any, progress: string[], completed?: string): boolean {
+    if (!completed || progress.length === 0) {
+      return false;
+    }
+
+    // Get phase-specific completion patterns based on workflow type and phase name
+    const phaseName = phase.name.toLowerCase();
+    const allProgress = [...progress, completed].join(' ').toLowerCase();
+
+    // Bug Hunt workflow semantic completion patterns
+    if (this.currentWorkflow === 'bug-hunt') {
+      if (phaseName.includes('reproduce') || phaseName.includes('isolate')) {
+        return /reproduced|isolated|found.*bug|identified.*issue|can.*reproduce|minimal.*case/i.test(allProgress);
+      }
+      if (phaseName.includes('test') || phaseName.includes('capture')) {
+        return /test.*written|test.*fails|failing.*test|captured.*bug.*test|test.*reproduces/i.test(allProgress);
+      }
+      if (phaseName.includes('fix')) {
+        return /fixed|working|test.*passes|bug.*resolved|issue.*solved|all.*tests.*pass/i.test(allProgress);
+      }
+    }
+
+    // TDD workflow semantic completion patterns
+    if (this.currentWorkflow === 'tdd') {
+      if (phaseName.includes('red') || phaseName.includes('test')) {
+        return /test.*written|test.*fails|failing.*test|red.*test/i.test(allProgress);
+      }
+      if (phaseName.includes('green') || phaseName.includes('implement')) {
+        return /test.*passes|green|implemented|working|passing/i.test(allProgress);
+      }
+      if (phaseName.includes('refactor')) {
+        return /refactored|cleaned.*up|improved|optimized|tests.*still.*pass/i.test(allProgress);
+      }
+    }
+
+    // General workflow patterns - look for phase-specific completion indicators
+    if (phaseName.includes('plan') || phaseName.includes('research')) {
+      return /researched|planned|understood|analyzed|identified.*approach|clear.*plan/i.test(allProgress);
+    }
+    if (phaseName.includes('implement') || phaseName.includes('build') || phaseName.includes('create')) {
+      return /implemented|built|created|working|complete.*implementation|functionality.*ready/i.test(allProgress);
+    }
+    if (phaseName.includes('test') || phaseName.includes('verify')) {
+      return /tested|verified|tests.*pass|validated|confirmed.*working/i.test(allProgress);
+    }
+
+    // Generic completion patterns - if substantial progress and strong completion indicators
+    if (progress.length >= 2) {
+      return /fully.*done|completely.*working|everything.*implemented|all.*working|finished.*implementation/i.test(allProgress);
+    }
+
+    return false;
+  }
+
+  private generateProgressSummary(progress: any, justCompletedPhase: boolean, justMarkedDone: boolean): string {
+    const { completed, total, remaining, phase_name, phase_number, total_phases } = progress;
+
+    // Base progress information
+    let summary = `**Progress**: ${completed}/${total} steps completed in ${phase_name}`;
+
+    // Add phase context
+    if (total_phases > 1) {
+      summary += ` (Phase ${phase_number}/${total_phases})`;
+    }
+
+    // Add contextual information based on progress state
+    if (justCompletedPhase) {
+      summary += ` ✨ **Phase Complete!**`;
+    } else if (justMarkedDone && completed > 0) {
+      if (completed === 1) {
+        summary += ` 🎯 Great start!`;
+      } else if (completed >= total * 0.8) {
+        summary += ` 🔥 Almost done!`;
+      } else if (completed >= total * 0.5) {
+        summary += ` 💪 Good momentum!`;
+      } else {
+        summary += ` 📈 Making progress!`;
+      }
+    } else if (completed === 0) {
+      summary += ` 🚀 Ready to begin!`;
+    }
+
+    return summary;
+  }
+
+  private async recordProgress(completed: string) {
     const workflow = this.workflows.get(this.currentWorkflow);
     if (!workflow) return;
-    
+
     const phase = workflow.phases[this.currentPhase];
     const progress = this.phaseProgress.get(phase.name) || [];
     progress.push(completed);
     this.phaseProgress.set(phase.name, progress);
+
+    // Save state after recording progress
+    await this.saveWorkflowState();
   }
 
   private async ensureLogsDir() {
