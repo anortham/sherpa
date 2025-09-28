@@ -43,6 +43,10 @@ import { AdaptiveLearningEngine } from "./src/behavioral-adoption/adaptive-learn
 import { CelebrationGenerator } from "./src/behavioral-adoption/celebration-generator";
 import { Milestone, ProgressTracker } from "./src/behavioral-adoption/progress-tracker";
 import { AdaptiveHint, Workflow, WorkflowState } from "./src/types";
+import { PhaseCompletionDetector } from "./src/workflow/phase-completion";
+import { ProgressDisplay } from "./src/workflow/progress-display";
+import { WorkflowStateManager } from "./src/workflow/workflow-state-manager";
+import { WorkflowDetector } from "./src/workflow/workflow-detector";
 
 // Types moved to src/types.ts
 
@@ -122,12 +126,11 @@ export class SherpaServer {
   private encouragements: any;
   private celebrationLevel: CelebrationLevel = "full";
   private learningEngine: AdaptiveLearningEngine;
-  private workflowStateFile: string;
+  private workflowStateManager: WorkflowStateManager;
 
   constructor() {
     this.sherpaHome = path.join(os.homedir(), ".sherpa");
     this.logsDir = path.join(this.sherpaHome, "logs");
-    this.workflowStateFile = path.join(this.sherpaHome, "workflow-state.json");
 
     // Initialize behavioral adoption system
     this.progressTracker = new ProgressTracker();
@@ -136,6 +139,9 @@ export class SherpaServer {
 
     // Initialize adaptive learning engine
     this.learningEngine = new AdaptiveLearningEngine();
+
+    // Initialize workflow state manager
+    this.workflowStateManager = new WorkflowStateManager((level, message) => this.log(level, message));
 
     this.server = new Server(
       {
@@ -155,7 +161,7 @@ export class SherpaServer {
     this.setupHandlers();
     this.validateStartup();
     this.loadWorkflows();
-    this.loadWorkflowState();
+    this.initializeWorkflowState();
   }
 
   private async validateStartup(): Promise<void> {
@@ -268,73 +274,11 @@ export class SherpaServer {
   }
 
   private detectWorkflowFromContext(context?: string): string {
-    if (!context) return this.currentWorkflow;
-
-    const lowerContext = context.toLowerCase();
-
-    // Bug hunting patterns
-    const bugPatterns = [
-      'bug', 'error', 'issue', 'problem', 'broken', 'not working',
-      'failing', 'crash', 'exception', 'debug', 'troubleshoot',
-      'investigate', 'reproduce', 'fix'
-    ];
-
-    // TDD patterns
-    const tddPatterns = [
-      'new feature', 'implement', 'add function', 'create', 'build',
-      'test', 'tdd', 'test-driven', 'spec', 'requirement'
-    ];
-
-    // Rapid prototyping patterns
-    const rapidPatterns = [
-      'prototype', 'quick', 'demo', 'poc', 'proof of concept',
-      'experiment', 'try', 'spike', 'explore'
-    ];
-
-    // Refactoring patterns
-    const refactorPatterns = [
-      'refactor', 'clean up', 'improve', 'optimize', 'restructure',
-      'organize', 'simplify', 'modernize', 'upgrade'
-    ];
-
-    // Check patterns in order of specificity
-    if (bugPatterns.some(pattern => lowerContext.includes(pattern))) {
-      return this.workflows.has('bug-hunt') ? 'bug-hunt' : this.currentWorkflow;
-    }
-
-    if (rapidPatterns.some(pattern => lowerContext.includes(pattern))) {
-      return this.workflows.has('rapid') ? 'rapid' : this.currentWorkflow;
-    }
-
-    if (refactorPatterns.some(pattern => lowerContext.includes(pattern))) {
-      return this.workflows.has('refactor') ? 'refactor' : this.currentWorkflow;
-    }
-
-    if (tddPatterns.some(pattern => lowerContext.includes(pattern))) {
-      return this.workflows.has('tdd') ? 'tdd' : this.currentWorkflow;
-    }
-
-    // Default to current workflow if no patterns match
-    return this.currentWorkflow;
+    return WorkflowDetector.detectWorkflowFromContext(context, this.workflows, this.currentWorkflow);
   }
 
   private generateWorkflowSuggestion(detectedWorkflow: string, context?: string): string {
-    if (detectedWorkflow === this.currentWorkflow) {
-      return "";
-    }
-
-    const workflow = this.workflows.get(detectedWorkflow);
-    if (!workflow) return "";
-
-    const reasonMap: { [key: string]: string } = {
-      'bug-hunt': "I detected you're working on a bug or issue",
-      'tdd': "I detected you're building a new feature",
-      'rapid': "I detected you want to prototype quickly",
-      'refactor': "I detected you're improving existing code"
-    };
-
-    const reason = reasonMap[detectedWorkflow] || "Based on your context";
-    return `💡 ${reason}. Consider switching to **${workflow.name}** workflow for optimal results.`;
+    return WorkflowDetector.generateWorkflowSuggestion(detectedWorkflow, this.currentWorkflow, this.workflows, context);
   }
 
   private loadEncouragements(): void {
@@ -357,57 +301,26 @@ export class SherpaServer {
   }
 
   private async saveWorkflowState(): Promise<void> {
-    try {
-      const state: WorkflowState = {
-        currentWorkflow: this.currentWorkflow,
-        currentPhase: this.currentPhase,
-        phaseProgress: Object.fromEntries(this.phaseProgress),
-        lastUpdated: new Date(),
-        sessionStartTime: new Date()
-      };
-
-      await fs.writeFile(this.workflowStateFile, JSON.stringify(state, null, 2));
-      this.log("DEBUG", `Workflow state saved: ${this.currentWorkflow} phase ${this.currentPhase}`);
-    } catch (error) {
-      this.log("WARN", `Failed to save workflow state: ${error}`);
-    }
+    await this.workflowStateManager.saveWorkflowState(
+      this.currentWorkflow,
+      this.currentPhase,
+      this.phaseProgress
+    );
   }
 
-  private async loadWorkflowState(): Promise<void> {
-    try {
-      const content = await fs.readFile(this.workflowStateFile, 'utf-8');
-      const state: WorkflowState = JSON.parse(content);
+  private async initializeWorkflowState(): Promise<void> {
+    const restoredState = await this.workflowStateManager.loadWorkflowState();
 
-      // Only restore state if it's recent (within 24 hours) to avoid stale state
-      const lastUpdated = new Date(state.lastUpdated);
-      const hoursSinceUpdate = (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60);
-
-      if (hoursSinceUpdate < 24) {
-        this.currentWorkflow = state.currentWorkflow;
-        this.currentPhase = state.currentPhase;
-        this.phaseProgress = new Map(Object.entries(state.phaseProgress));
-        this.log("INFO", `Restored workflow state: ${this.currentWorkflow} phase ${this.currentPhase}`);
-      } else {
-        this.log("INFO", "Workflow state too old, starting fresh");
-        await this.clearWorkflowState();
-      }
-    } catch (error) {
-      // No existing state file or invalid - start fresh
-      this.log("DEBUG", "No existing workflow state found, starting fresh");
+    if (restoredState) {
+      this.currentWorkflow = restoredState.currentWorkflow;
+      this.currentPhase = restoredState.currentPhase;
+      this.phaseProgress = restoredState.phaseProgress;
+    } else {
+      // Initialize defaults
+      this.currentWorkflow = WorkflowDetector.detectInitialWorkflow(this.workflows);
+      this.currentPhase = 0;
+      this.phaseProgress.clear();
     }
-  }
-
-  private async clearWorkflowState(): Promise<void> {
-    try {
-      await fs.unlink(this.workflowStateFile);
-    } catch (error) {
-      // File doesn't exist - that's fine
-    }
-
-    // Reset to defaults
-    this.currentWorkflow = "general";
-    this.currentPhase = 0;
-    this.phaseProgress.clear();
   }
 
   private getCurrentPhaseName(): string {
@@ -721,33 +634,8 @@ export class SherpaServer {
     // Check if should advance to next phase
     // Enhanced phase completion logic with smarter semantic understanding
 
-    // Multiple ways to complete a phase:
-    // 1. Traditional: enough steps completed relative to phase size
-    const traditionalPhaseComplete = progress.length >= phase.suggestions.length;
-
-    // 2. Smart completion: sufficient meaningful progress for phase goals
-    const hasSubstantialProgress = progress.length >= Math.max(2, Math.ceil(phase.suggestions.length * 0.6));
-
-    // 3. Explicit completion: user indicates they've finished the phase
-    const explicitCompletion = completed && (
-      /completed.*phase/i.test(completed) ||
-      /finished.*phase/i.test(completed) ||
-      /done.*with.*phase/i.test(completed) ||
-      /phase.*complete/i.test(completed) ||
-      /ready.*next.*phase/i.test(completed) ||
-      /moving.*to.*next/i.test(completed)
-    );
-
-    // 4. Semantic completion: check if recent work matches phase goals
-    const semanticCompletion = this.isPhaseSemanticallComplete(phase, progress, completed);
-
-    // 5. Natural completion indicators in the work description
-    const naturalCompletion = completed && (
-      /all.*done|everything.*working|fully.*implemented|complete.*working/i.test(completed) ||
-      (hasSubstantialProgress && /done|working|implemented|fixed|tested|ready/i.test(completed))
-    );
-
-    const isPhaseComplete = traditionalPhaseComplete || explicitCompletion || semanticCompletion || naturalCompletion;
+    // Check if phase is complete using comprehensive detection logic
+    const isPhaseComplete = PhaseCompletionDetector.isPhaseComplete(this.currentWorkflow, phase, progress, completed);
 
     const isWorkflowComplete = isPhaseComplete && this.currentPhase >= workflow.phases.length - 1;
 
@@ -781,15 +669,14 @@ export class SherpaServer {
     const currentPhase = workflow.phases[this.currentPhase];
     const currentProgress = this.phaseProgress.get(currentPhase.name) || [];
 
-    // Calculate accurate progress including any completed work in current action
-    let actualProgress = currentProgress.length;
-
-    // If we just completed work and it advanced phase, show completion of previous phase
-    // If we're showing a new phase due to advancement, show that we've made progress
-    if (action === "done" && completed && isPhaseComplete && this.currentPhase > 0) {
-      // Just advanced to new phase - show new phase with fresh start
-      actualProgress = 0; // New phase starts fresh
-    }
+    // Calculate accurate progress using ProgressDisplay utilities
+    const actualProgress = ProgressDisplay.calculateActualProgress(
+      currentProgress,
+      action,
+      completed,
+      isPhaseComplete,
+      this.currentPhase
+    );
 
     // Show all suggestions - users can track progress by count rather than exact matches
     const currentRemaining = currentPhase.suggestions;
@@ -800,14 +687,12 @@ export class SherpaServer {
       guidance: currentPhase.guidance,
       suggestions: currentRemaining,
       phase_number: `${this.currentPhase + 1}/${workflow.phases.length}`,
-      progress: {
-        completed: actualProgress,
-        total: currentPhase.suggestions.length,
-        remaining: Math.max(0, currentPhase.suggestions.length - actualProgress),
-        phase_name: currentPhase.name,
-        phase_number: this.currentPhase + 1,
-        total_phases: workflow.phases.length
-      }
+      progress: ProgressDisplay.createProgressObject(
+        actualProgress,
+        currentPhase,
+        this.currentPhase,
+        workflow.phases.length
+      )
     };
 
     // Add celebration message if we have one
@@ -1411,88 +1296,11 @@ export class SherpaServer {
   }
 
   private isPhaseSemanticallComplete(phase: any, progress: string[], completed?: string): boolean {
-    if (!completed || progress.length === 0) {
-      return false;
-    }
-
-    // Get phase-specific completion patterns based on workflow type and phase name
-    const phaseName = phase.name.toLowerCase();
-    const allProgress = [...progress, completed].join(' ').toLowerCase();
-
-    // Bug Hunt workflow semantic completion patterns
-    if (this.currentWorkflow === 'bug-hunt') {
-      if (phaseName.includes('reproduce') || phaseName.includes('isolate')) {
-        return /reproduced|isolated|found.*bug|identified.*issue|can.*reproduce|minimal.*case/i.test(allProgress);
-      }
-      if (phaseName.includes('test') || phaseName.includes('capture')) {
-        return /test.*written|test.*fails|failing.*test|captured.*bug.*test|test.*reproduces/i.test(allProgress);
-      }
-      if (phaseName.includes('fix')) {
-        return /fixed|working|test.*passes|bug.*resolved|issue.*solved|all.*tests.*pass/i.test(allProgress);
-      }
-    }
-
-    // TDD workflow semantic completion patterns
-    if (this.currentWorkflow === 'tdd') {
-      if (phaseName.includes('red') || phaseName.includes('test')) {
-        return /test.*written|test.*fails|failing.*test|red.*test/i.test(allProgress);
-      }
-      if (phaseName.includes('green') || phaseName.includes('implement')) {
-        return /test.*passes|green|implemented|working|passing/i.test(allProgress);
-      }
-      if (phaseName.includes('refactor')) {
-        return /refactored|cleaned.*up|improved|optimized|tests.*still.*pass/i.test(allProgress);
-      }
-    }
-
-    // General workflow patterns - look for phase-specific completion indicators
-    if (phaseName.includes('plan') || phaseName.includes('research')) {
-      return /researched|planned|understood|analyzed|identified.*approach|clear.*plan/i.test(allProgress);
-    }
-    if (phaseName.includes('implement') || phaseName.includes('build') || phaseName.includes('create')) {
-      return /implemented|built|created|working|complete.*implementation|functionality.*ready/i.test(allProgress);
-    }
-    if (phaseName.includes('test') || phaseName.includes('verify')) {
-      return /tested|verified|tests.*pass|validated|confirmed.*working/i.test(allProgress);
-    }
-
-    // Generic completion patterns - if substantial progress and strong completion indicators
-    if (progress.length >= 2) {
-      return /fully.*done|completely.*working|everything.*implemented|all.*working|finished.*implementation/i.test(allProgress);
-    }
-
-    return false;
+    return PhaseCompletionDetector.isPhaseSemanticallComplete(this.currentWorkflow, phase, progress, completed);
   }
 
   private generateProgressSummary(progress: any, justCompletedPhase: boolean, justMarkedDone: boolean): string {
-    const { completed, total, remaining, phase_name, phase_number, total_phases } = progress;
-
-    // Base progress information
-    let summary = `**Progress**: ${completed}/${total} steps completed in ${phase_name}`;
-
-    // Add phase context
-    if (total_phases > 1) {
-      summary += ` (Phase ${phase_number}/${total_phases})`;
-    }
-
-    // Add contextual information based on progress state
-    if (justCompletedPhase) {
-      summary += ` ✨ **Phase Complete!**`;
-    } else if (justMarkedDone && completed > 0) {
-      if (completed === 1) {
-        summary += ` 🎯 Great start!`;
-      } else if (completed >= total * 0.8) {
-        summary += ` 🔥 Almost done!`;
-      } else if (completed >= total * 0.5) {
-        summary += ` 💪 Good momentum!`;
-      } else {
-        summary += ` 📈 Making progress!`;
-      }
-    } else if (completed === 0) {
-      summary += ` 🚀 Ready to begin!`;
-    }
-
-    return summary;
+    return ProgressDisplay.generateProgressSummary(progress, justCompletedPhase, justMarkedDone);
   }
 
   private async recordProgress(completed: string) {
