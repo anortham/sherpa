@@ -11,9 +11,10 @@ export class WorkflowStateManager {
   private workflowStateFile: string;
 
   constructor(
-    private log: (level: string, message: string) => void
+    private log: (level: string, message: string) => void,
+    customSherpaHome?: string
   ) {
-    const sherpaHome = path.join(os.homedir(), ".sherpa");
+    const sherpaHome = customSherpaHome || path.join(os.homedir(), ".sherpa");
     this.workflowStateFile = path.join(sherpaHome, "workflow-state.json");
   }
 

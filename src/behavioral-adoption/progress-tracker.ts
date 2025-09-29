@@ -1,3 +1,7 @@
+import * as fs from "fs/promises";
+import * as path from "path";
+import * as os from "os";
+
 export interface ProgressStats {
   totalWorkflowsCompleted: number;
   totalStepsCompleted: number;
@@ -17,13 +21,36 @@ export interface Milestone {
   icon: string;
 }
 
+interface PersistedState {
+  stats: ProgressStats;
+  milestones: Milestone[];
+  savedAt: Date;
+}
+
 export class ProgressTracker {
   private stats: ProgressStats;
   private milestones: Milestone[];
+  private stateFile: string;
+  private sherpaHome: string;
+  private loadPromise: Promise<void>;
 
-  constructor() {
+  constructor(customSherpaHome?: string) {
+    this.sherpaHome = customSherpaHome || path.join(os.homedir(), ".sherpa");
+    this.stateFile = path.join(this.sherpaHome, "progress-tracker.json");
     this.stats = this.initializeStats();
     this.milestones = this.initializeMilestones();
+
+    // Load persisted state asynchronously but track the promise
+    this.loadPromise = this.loadState().catch(() => {
+      // Silent fail - use defaults
+    });
+  }
+
+  /**
+   * Wait for state to finish loading (useful for testing and initialization)
+   */
+  async waitForLoad(): Promise<void> {
+    await this.loadPromise;
   }
 
   private initializeStats(): ProgressStats {
@@ -86,6 +113,78 @@ export class ProgressTracker {
   }
 
   /**
+   * Load persisted state from disk
+   */
+  async loadState(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.stateFile, 'utf-8');
+      const persisted: PersistedState = JSON.parse(data);
+
+      // Restore stats with date conversion
+      this.stats = {
+        ...persisted.stats,
+        lastActivity: new Date(persisted.stats.lastActivity)
+      };
+
+      // Restore milestones by merging with defaults (in case new milestones were added)
+      const defaultMilestones = this.initializeMilestones();
+      this.milestones = defaultMilestones.map(defaultM => {
+        const savedM = persisted.milestones.find(m => m.id === defaultM.id);
+        if (savedM) {
+          return {
+            ...savedM,
+            achievedAt: savedM.achievedAt ? new Date(savedM.achievedAt) : undefined
+          };
+        }
+        return defaultM;
+      });
+    } catch (error) {
+      // No saved state or invalid - use defaults
+      // Silent fail to avoid breaking MCP protocol
+    }
+  }
+
+  /**
+   * Save current state to disk
+   */
+  async saveState(): Promise<void> {
+    try {
+      await fs.mkdir(this.sherpaHome, { recursive: true });
+
+      const state: PersistedState = {
+        stats: this.stats,
+        milestones: this.milestones,
+        savedAt: new Date()
+      };
+
+      await fs.writeFile(this.stateFile, JSON.stringify(state, null, 2));
+    } catch (error) {
+      // Silent fail - log to sherpa logs if available
+      await this.logToFile(`Failed to save progress tracker state: ${error}`).catch(() => {});
+    }
+  }
+
+  /**
+   * Log errors to Sherpa log file
+   */
+  private async logToFile(message: string): Promise<void> {
+    try {
+      const logsDir = path.join(this.sherpaHome, 'logs');
+      await fs.mkdir(logsDir, { recursive: true });
+
+      const today = new Date().toISOString().split('T')[0];
+      const logFile = path.join(logsDir, `sherpa-${today}.log`);
+
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] WARN: ${message}\n`;
+
+      await fs.appendFile(logFile, logEntry);
+    } catch {
+      // Silent fail - cannot log
+    }
+  }
+
+  /**
    * Record completion of a workflow step
    */
   recordStepCompletion(workflowType: string, stepDescription: string): Milestone[] {
@@ -94,7 +193,12 @@ export class ProgressTracker {
     this.updateStreak(activityTime);
     this.stats.lastActivity = activityTime;
     this.trackWorkflowUsage(workflowType);
-    return this.checkMilestones();
+    const milestones = this.checkMilestones();
+
+    // Save state asynchronously (don't await to avoid blocking)
+    this.saveState().catch(() => {});
+
+    return milestones;
   }
 
   /**
@@ -108,7 +212,12 @@ export class ProgressTracker {
     this.trackWorkflowUsage(workflowType);
     this.updateStreak(activityTime);
     this.stats.lastActivity = activityTime;
-    return this.checkMilestones();
+    const milestones = this.checkMilestones();
+
+    // Save state asynchronously (don't await to avoid blocking)
+    this.saveState().catch(() => {});
+
+    return milestones;
   }
 
   /**
@@ -273,5 +382,8 @@ export class ProgressTracker {
       m.achieved = false;
       delete m.achievedAt;
     });
+
+    // Save reset state
+    this.saveState().catch(() => {});
   }
 }
