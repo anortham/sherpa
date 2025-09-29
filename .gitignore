@@ -26,4 +26,5 @@ build/
 
 # Temporary directories
 .coa/
+.julie/
 tmp/

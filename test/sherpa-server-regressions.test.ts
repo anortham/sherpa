@@ -94,29 +94,7 @@ describe("SherpaServer regression coverage", () => {
     return new SherpaServer();
   }
 
-  test("flow celebrate updates adaptive session preferences", () => {
-    const server = createServer();
-    const handleFlow = (server as any).handleFlow.bind(server);
 
-    handleFlow({ mode: "on" });
-    handleFlow({ mode: "celebrate", celebration: "minimal" });
-
-    const session = (server as any).learningEngine.getCurrentSession();
-    expect(session.celebrationLevel).toBe("minimal");
-  });
-
-  test("flow off fully disables active flow state", () => {
-    const server = createServer();
-    const handleFlow = (server as any).handleFlow.bind(server);
-
-    handleFlow({ mode: "on" });
-    const stateBefore = (server as any).learningEngine.getFlowState();
-    expect(stateBefore.isActive).toBe(true);
-
-    handleFlow({ mode: "off" });
-    const stateAfter = (server as any).learningEngine.getFlowState();
-    expect(stateAfter.isActive).toBe(false);
-  });
 
   test("workflow completion records all steps across phases", async () => {
     const server = createServer();

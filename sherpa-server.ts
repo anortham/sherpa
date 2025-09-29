@@ -50,7 +50,6 @@ import { WorkflowDetector } from "./src/workflow/workflow-detector";
 
 // Types moved to src/types.ts
 
-type CelebrationLevel = "full" | "minimal" | "whisper" | "off";
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const STATIC_INSTRUCTIONS = `# Sherpa - Systematic Development Guide
@@ -77,14 +76,8 @@ WITHOUT SYSTEMATIC WORKFLOW GUIDANCE, YOU'RE JUST WANDERING IN THE WILDERNESS OF
 
 ### 🎯 approach - Choose Your Workflow
 - \`approach list\` - View all available workflows
-- \`approach set <name>\` - Switch to a specific workflow (tdd, bug-hunt, general, rapid, refactor)
+- \`approach set <name>\` - Switch to a specific workflow (tdd, bug-hunt, general, planning, rapid, refactor)
 
-### 🌊 flow - Adaptive Guidance Mode
-- \`flow on\` - Enable gentle, adaptive guidance
-- \`flow whisper\` - Ultra-minimal guidance
-- \`flow active\` - Maximum AI assistance
-- \`flow hint\` - Get a contextual hint
-- \`flow celebrate <level>\` - Set celebration level (full, minimal, whisper, off)
 
 ## Workflows
 
@@ -92,6 +85,7 @@ Sherpa provides structured workflows for different development scenarios:
 - **TDD**: Test-driven development with red-green-refactor cycle
 - **Bug Hunt**: Systematic debugging with hypothesis-driven approach
 - **General**: Balanced development with research, planning, and implementation
+- **Planning**: Pure planning workflow - research, understand, design, and document before implementation
 - **Rapid**: Quick prototyping for experiments and demos
 - **Refactor**: Safe code improvement with test coverage
 
@@ -124,7 +118,6 @@ export class SherpaServer {
   private progressTracker: ProgressTracker;
   private celebrationGenerator: CelebrationGenerator;
   private encouragements: any;
-  private celebrationLevel: CelebrationLevel = "full";
   private learningEngine: AdaptiveLearningEngine;
   private workflowStateManager: WorkflowStateManager;
 
@@ -398,26 +391,6 @@ export class SherpaServer {
             },
             required: ["set"]
           }
-        },
-        {
-          name: "flow",
-          description: "Configure adaptive AI guidance and celebration intensity levels.\n\nUse this when: adjusting coaching intensity, needing productivity boost, managing celebration overwhelm, or entering deep focus mode.\n\nExamples:\n- 'flow active' - Maximum AI assistance and guidance\n- 'flow whisper' - Ultra-minimal, barely visible guidance\n- 'flow off' - Disable adaptive guidance completely\n- 'flow celebrate minimal' - Reduce celebration intensity\n\nSettings: Guidance modes (on/whisper/active/hint/off), Celebration levels (full/minimal/whisper/off).\n\nReturns: Current flow state configuration and personalized productivity insights.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              mode: {
-                type: "string",
-                enum: ["on", "whisper", "active", "hint", "off", "celebrate"],
-                description: "on = gentle adaptive flow, whisper = ultra-minimal guidance, active = enhanced AI assistance, hint = get smart suggestion, off = disable, celebrate = configure celebration level"
-              },
-              celebration: {
-                type: "string",
-                enum: ["full", "minimal", "whisper", "off"],
-                description: "Celebration level: full = complete celebrations, minimal = just progress, whisper = barely visible, off = none (only with celebrate mode)"
-              }
-            },
-            required: ["mode"]
-          }
         }
       ]
     }));
@@ -428,8 +401,6 @@ export class SherpaServer {
         return await this.handleGuide(request.params.arguments);
       } else if (request.params.name === "approach") {
         return await this.handleApproach(request.params.arguments);
-      } else if (request.params.name === "flow") {
-        return this.handleFlow(request.params.arguments);
       } else if (request.params.name === "next") {
         // Backward compatibility
         return await this.handleGuide(request.params.arguments);
@@ -478,9 +449,6 @@ export class SherpaServer {
 
     // Record tool usage for learning
     this.learningEngine.recordToolUsage("guide", safeArgs);
-
-    // Apply learned preferences
-    this.celebrationLevel = this.learningEngine.getUserProfile().preferences.celebrationLevel as CelebrationLevel;
 
     // Get workflow early so advance action can use it
     const workflow = this.workflows.get(this.currentWorkflow);
@@ -554,7 +522,7 @@ export class SherpaServer {
           content: [
             {
               type: "text",
-              text: `${this.filterCelebrationContent(advancementMessage)}\n\n` +
+              text: `${advancementMessage}\n\n` +
                     `**${newPhase.name}** (${this.currentPhase + 1}/${workflow.phases.length})\n` +
                     `${newPhase.guidance}\n\n` +
                     `**Next steps:**\n` +
@@ -757,11 +725,11 @@ export class SherpaServer {
 
     // Add workflow suggestion if present
     if (workflowSuggestion) {
-      naturalResponse += `${this.filterCelebrationContent(workflowSuggestion)}\n\n`;
+      naturalResponse += `${workflowSuggestion}\n\n`;
     }
 
-    // Add adaptive hint if present (this is the liquid experience magic!)
-    if (adaptiveHint && this.learningEngine.getFlowState().isActive) {
+    // Add adaptive hint if present
+    if (adaptiveHint) {
       const hintContent = this.formatAdaptiveHint(adaptiveHint);
       if (hintContent) {
         naturalResponse += `${hintContent}\n\n`;
@@ -770,10 +738,7 @@ export class SherpaServer {
 
     // Add celebration if present
     if (response.celebration) {
-      const filteredCelebration = this.filterCelebrationContent(response.celebration);
-      if (filteredCelebration) {
-        naturalResponse += `${filteredCelebration}\n\n`;
-      }
+      naturalResponse += `${response.celebration}\n\n`;
     }
 
     // Add main guidance
@@ -791,26 +756,17 @@ export class SherpaServer {
 
     // Add progress encouragement if present
     if (response.progress_encouragement) {
-      const filteredProgress = this.filterCelebrationContent(response.progress_encouragement);
-      if (filteredProgress) {
-        naturalResponse += `${filteredProgress}\n\n`;
-      }
+      naturalResponse += `${response.progress_encouragement}\n\n`;
     }
 
     // Add workflow completion if present
     if (response.workflow_completion) {
-      const filteredCompletion = this.filterCelebrationContent(response.workflow_completion);
-      if (filteredCompletion) {
-        naturalResponse += `${filteredCompletion}\n\n`;
-      }
+      naturalResponse += `${response.workflow_completion}\n\n`;
     }
 
-    // Add success story occasionally (skip if whisper/off mode)
-    if (response.success_inspiration && this.celebrationLevel !== "whisper" && this.celebrationLevel !== "off") {
-      const inspiration = this.celebrationLevel === "minimal"
-        ? response.success_inspiration.replace(/💡 /, "")
-        : response.success_inspiration;
-      naturalResponse += `💡 **Inspiration**: ${inspiration}\n\n`;
+    // Add success story occasionally
+    if (response.success_inspiration) {
+      naturalResponse += `💡 **Inspiration**: ${response.success_inspiration}\n\n`;
     }
 
     // Add progress summary with better context
@@ -842,9 +798,6 @@ export class SherpaServer {
     // Record tool usage for learning
     this.learningEngine.recordToolUsage("approach", safeArgs);
 
-    // Apply learned preferences
-    this.celebrationLevel = this.learningEngine.getUserProfile().preferences.celebrationLevel as CelebrationLevel;
-
     if (set === "list") {
       const workflowList = Array.from(this.workflows.entries()).map(([key, wf]) => ({
         key,
@@ -871,10 +824,7 @@ export class SherpaServer {
 
       // Add motivation
       if (selectionMotivation) {
-        const filteredMotivation = this.filterCelebrationContent(selectionMotivation);
-        if (filteredMotivation) {
-          approachResponse += `${filteredMotivation}\n\n`;
-        }
+        approachResponse += `${selectionMotivation}\n\n`;
       }
 
       // Add current workflow
@@ -978,17 +928,11 @@ export class SherpaServer {
     let switchResponse = "";
 
     // Add switch celebration
-    const filteredSwitchCelebration = this.filterCelebrationContent(switchCelebration);
-    if (filteredSwitchCelebration) {
-      switchResponse += `${filteredSwitchCelebration}\n\n`;
-    }
+    switchResponse += `${switchCelebration}\n\n`;
 
     // Add phase entry celebration
     if (phaseEntryCelebration) {
-      const filteredPhaseEntry = this.filterCelebrationContent(phaseEntryCelebration);
-      if (filteredPhaseEntry) {
-        switchResponse += `${filteredPhaseEntry}\n\n`;
-      }
+      switchResponse += `${phaseEntryCelebration}\n\n`;
     }
 
     // Add workflow details
@@ -1008,12 +952,9 @@ export class SherpaServer {
       switchResponse += "\n";
     }
 
-    // Add success inspiration if available (respect celebration level)
-    if (successStory && this.celebrationLevel !== "whisper" && this.celebrationLevel !== "off") {
-      const inspiration = this.celebrationLevel === "minimal"
-        ? successStory.replace(/💡 /, "")
-        : successStory;
-      switchResponse += `💡 **Inspiration**: ${inspiration}\n\n`;
+    // Add success inspiration if available
+    if (successStory) {
+      switchResponse += `💡 **Inspiration**: ${successStory}\n\n`;
     }
 
     // Add explicit next action guidance
@@ -1030,270 +971,23 @@ export class SherpaServer {
     };
   }
 
-  private handleFlow(args: any) {
-    const safeArgs = args ?? {};
-    const mode = safeArgs.mode ?? "on";
-    const celebration = safeArgs.celebration;
-
-    // Record tool usage for learning
-    this.learningEngine.recordToolUsage("flow", safeArgs);
-
-    switch (mode) {
-      case "on":
-        // Enable flow mode with learning engine
-        const flowState = this.learningEngine.updateFlowState("on");
-        return {
-          content: [
-            {
-              type: "text",
-              text: `🌊 **Flow mode activated** - ${flowState.intensity} intensity\n\n` +
-                   `✨ Adaptive guidance enabled - I'll learn your patterns and provide contextual hints\n` +
-                   `💭 Background tracking active - seamless progress monitoring\n` +
-                   `🧠 Predictive hints ready - I'll anticipate your needs\n\n` +
-                   `Continue with your current task - the liquid experience begins now.`
-            }
-          ]
-        };
-
-      case "whisper":
-        // Ultra-minimal flow mode
-        const whisperState = this.learningEngine.updateFlowState("whisper");
-        return {
-          content: [
-            {
-              type: "text",
-              text: `💭 Whisper mode engaged - ultra-minimal guidance\n\nOnly essential insights will surface. Maximum focus, minimal interruption.`
-            }
-          ]
-        };
-
-      case "active":
-        // High-engagement flow mode
-        const activeState = this.learningEngine.updateFlowState("active");
-        return {
-          content: [
-            {
-              type: "text",
-              text: `🔥 Active flow mode - enhanced guidance and learning\n\n` +
-                   `📊 Detailed analytics enabled\n` +
-                   `🎯 Frequent adaptive hints\n` +
-                   `📈 Real-time optimization suggestions\n\n` +
-                   `Ready for accelerated development with maximum AI assistance.`
-            }
-          ]
-        };
-
-      case "hint":
-        // Generate adaptive hint on demand
-        const workflow = this.workflows.get(this.currentWorkflow);
-        if (!workflow) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "💡 Consider choosing a development approach first"
-              }
-            ]
-          };
-        }
-
-        // Generate contextual hint using learning engine
-        const predictiveContext = this.learningEngine.generatePredictiveContext(
-          this.currentWorkflow,
-          workflow.phases[this.currentPhase]?.name || "unknown"
-        );
-
-        const adaptiveHint = this.learningEngine.generateAdaptiveHint(predictiveContext);
-
-        if (adaptiveHint) {
-          // Record that user requested a hint
-          this.learningEngine.recordHintInteraction(adaptiveHint, true);
-          return {
-            content: [
-              {
-                type: "text",
-                text: this.formatAdaptiveHint(adaptiveHint)
-              }
-            ]
-          };
-        }
-
-        // Fallback to basic workflow suggestion
-        const phase = workflow.phases[this.currentPhase];
-        const progress = this.phaseProgress.get(phase.name) || [];
-        const nextSuggestion = phase.suggestions.find(s => !progress.includes(s));
-
-        if (nextSuggestion) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `💡 ${nextSuggestion}`
-              }
-            ]
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: "💡 Phase complete - ready for next steps"
-            }
-          ]
-        };
-
-      case "celebrate":
-        if (!celebration) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `**Current celebration level**: ${this.celebrationLevel}\n\n**Available levels:**\n• **full**: Complete celebrations and achievements\n• **minimal**: Just next steps and progress\n• **whisper**: Nearly invisible guidance\n• **off**: Pure workflow guidance without psychology\n\nUse: \`flow celebrate <level>\` to change`
-              }
-            ]
-          };
-        }
-
-        const celebrationLevel = celebration as CelebrationLevel;
-        this.celebrationLevel = celebrationLevel;
-        this.learningEngine.setCelebrationLevel(celebrationLevel);
-        const levelDescriptions = {
-          full: "Complete celebrations and achievements enabled",
-          minimal: "Streamlined progress tracking - just the essentials",
-          whisper: "Nearly invisible guidance - maximum focus",
-          off: "Pure workflow guidance without behavioral psychology"
-        };
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `🎛️ Celebration level set to **${celebration}**\n\n${levelDescriptions[celebration as keyof typeof levelDescriptions]}\n\nThis affects all guide and approach responses.`
-            }
-          ]
-        };
-
-      case "off":
-        this.learningEngine.updateFlowState("off");
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Flow mode disabled. Use `guide` for structured workflow guidance when needed."
-            }
-          ]
-        };
-
-      default:
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Flow modes: `on` (enable gentle guidance), `hint` (get subtle suggestion), `celebrate <level>` (configure celebrations), `off` (disable)"
-            }
-          ]
-        };
-    }
-  }
 
 
   private formatAdaptiveHint(hint: AdaptiveHint): string {
     if (!hint) return "";
 
-    const flowState = this.learningEngine.getFlowState();
-    let formattedHint = "";
-
-    // Format based on flow intensity and hint type
-    switch (flowState.intensity) {
-      case 'whisper':
-        // Ultra-minimal hints for whisper mode
-        if (hint.priority === 'high' || hint.priority === 'urgent') {
-          formattedHint = `💭 ${hint.content}`;
-        }
-        break;
-
-      case 'gentle':
-        // Polite, contextual hints
-        const icons = {
-          'next-step': '➡️',
-          'workflow-suggestion': '🔄',
-          'optimization': '⚡',
-          'prevention': '⚠️',
-          'encouragement': '💪'
-        };
-        const icon = icons[hint.type] || '💡';
-        formattedHint = `${icon} **Smart suggestion**: ${hint.content}`;
-        break;
-
-      case 'active':
-        // More detailed hints with confidence and learning basis
-        formattedHint = `🧠 **Adaptive insight** (${Math.round(hint.confidence * 100)}% confidence):\n${hint.content}`;
-        if (hint.learningBasis.length > 0) {
-          formattedHint += `\n*Based on: ${hint.learningBasis.join(', ')}*`;
-        }
-        break;
-
-      default:
-        formattedHint = hint.content;
-    }
-
-    // Apply celebration filtering
-    return this.filterCelebrationContent(formattedHint);
+    // Simple, friendly hint formatting
+    const icons = {
+      'next-step': '➡️',
+      'workflow-suggestion': '🔄',
+      'optimization': '⚡',
+      'prevention': '⚠️',
+      'encouragement': '💪'
+    };
+    const icon = icons[hint.type] || '💡';
+    return `${icon} **Smart suggestion**: ${hint.content}`;
   }
 
-  private filterCelebrationContent(content: string): string {
-    // Handle null/undefined input gracefully
-    if (!content || typeof content !== 'string') {
-      return '';
-    }
-
-    // Get user's celebration level preference from adaptive learning engine
-    const session = this.learningEngine.getCurrentSession();
-    const celebrationLevel = session.celebrationLevel;
-
-    switch (celebrationLevel) {
-      case 'off':
-        // Remove all emojis and enthusiastic language
-        return content
-          // Remove celebration emojis
-          .replace(/[\u{1F389}\u{1F525}\u{26A1}\u{1F680}\u{2728}\u{1F3C6}\u{1F4AA}\u{1F31F}\u{1F3AF}\u{1F4BB}\u{1F527}\u{2699}\u{1F4DD}\u{1F3A8}\u{1F9EA}\u{1F50D}]/gu, '')
-          // Replace enthusiastic words
-          .replace(/\b(awesome|amazing|fantastic|incredible|brilliant|excellent|outstanding|superb|wonderful|great|perfect)\b/gi, 'good')
-          // Replace exclamation marks with single period
-          .replace(/!+/g, '.')
-          // Clean up extra spaces
-          .replace(/\s+/g, ' ')
-          .trim();
-
-      case 'whisper':
-        // Minimal celebration, remove loud emojis but keep subtle ones
-        return content
-          // Remove loud celebration emojis but keep work-related ones like 🔧, 💻, 🔄
-          .replace(/[\u{1F389}\u{1F525}\u{26A1}\u{1F680}\u{1F3C6}\u{1F4AA}\u{1F31F}]/gu, '')
-          // Reduce multiple exclamation marks to single
-          .replace(/!{2,}/g, '!')
-          // Clean up extra spaces
-          .replace(/\s+/g, ' ')
-          .trim();
-
-      case 'minimal':
-        // Reduce enthusiasm but keep core message
-        return content
-          // Remove very enthusiastic emojis including trophy
-          .replace(/[\u{1F389}\u{1F525}\u{26A1}\u{1F680}\u{1F3C6}]/gu, '')
-          // Limit exclamation marks to maximum 2
-          .replace(/!{3,}/g, '!!')
-          // Clean up extra spaces
-          .replace(/\s+/g, ' ')
-          .trim();
-
-      case 'full':
-      default:
-        // Full celebration mode - return content as-is
-        return content;
-    }
-  }
 
   private isPhaseSemanticallComplete(phase: any, progress: string[], completed?: string): boolean {
     return PhaseCompletionDetector.isPhaseSemanticallComplete(this.currentWorkflow, phase, progress, completed);

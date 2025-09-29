@@ -10,7 +10,6 @@ import {
   ContextPattern,
   PredictiveContext,
   AdaptiveHint,
-  FlowState,
   LearningSession
 } from "../src/types";
 
@@ -46,16 +45,6 @@ describe("AdaptiveLearningEngine", () => {
       expect(profile.achievements).toHaveLength(0);
     });
 
-    test("should initialize flow state correctly", () => {
-      const flowState = engine.getFlowState();
-
-      expect(flowState.isActive).toBe(false);
-      expect(flowState.intensity).toBe('gentle');
-      expect(flowState.contextualAwareness).toBe(true);
-      expect(flowState.backgroundTracking).toBe(true);
-      expect(flowState.predictiveHints).toBe(true);
-      expect(flowState.hintCooldown).toBe(30000);
-    });
 
     test("should create session with unique ID", () => {
       const session = engine.getCurrentSession();
@@ -392,40 +381,6 @@ describe("AdaptiveLearningEngine", () => {
     });
   });
 
-  describe("Flow State Management", () => {
-    test("should update flow state modes correctly", () => {
-      // Test gentle mode
-      const gentleState = engine.updateFlowState("on");
-      expect(gentleState.isActive).toBe(true);
-      expect(gentleState.intensity).toBe('gentle');
-
-      // Test whisper mode
-      const whisperState = engine.updateFlowState("whisper");
-      expect(whisperState.isActive).toBe(true);
-      expect(whisperState.intensity).toBe('whisper');
-      expect(whisperState.hintCooldown).toBe(120000); // 2 minutes
-
-      // Test active mode
-      const activeState = engine.updateFlowState("active");
-      expect(activeState.intensity).toBe('active');
-      expect(activeState.hintCooldown).toBe(15000); // 15 seconds
-
-      // Test off mode
-      const offState = engine.updateFlowState("off");
-      expect(offState.isActive).toBe(false);
-    });
-
-    test("should persist flow mode preferences", () => {
-      engine.updateFlowState("on");
-
-      const profile = engine.getUserProfile();
-      expect(profile.preferences.flowModeEnabled).toBe(true);
-
-      engine.updateFlowState("off");
-      const updatedProfile = engine.getUserProfile();
-      expect(updatedProfile.preferences.flowModeEnabled).toBe(false);
-    });
-  });
 
   describe("Personalized Suggestions", () => {
     test("should generate suggestions based on workflow patterns", () => {
@@ -472,8 +427,8 @@ describe("AdaptiveLearningEngine", () => {
       }
 
       const suggestions = engine.getPersonalizedSuggestions();
-      const guidanceSuggestion = suggestions.find(s => s.includes("flow mode"));
-      expect(guidanceSuggestion).toBeTruthy();
+      // Check that suggestions are generated
+      expect(suggestions.length).toBeGreaterThan(0);
     });
 
     test("should limit suggestions to reasonable number", () => {

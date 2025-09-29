@@ -138,8 +138,8 @@ describe("Race Condition Handling", () => {
         Promise.resolve().then(() => engine.recordToolUsage("guide", { action: "check" })),
         Promise.resolve().then(() => engine.recordToolUsage("guide", { action: "done", completed: "test" })),
         Promise.resolve().then(() => engine.recordToolUsage("approach", { set: "tdd" })),
-        Promise.resolve().then(() => engine.recordToolUsage("flow", { mode: "on" })),
-        Promise.resolve().then(() => engine.recordToolUsage("flow", { mode: "off" }))
+        Promise.resolve().then(() => engine.recordToolUsage("guide", { action: "next" })),
+        Promise.resolve().then(() => engine.recordToolUsage("approach", { set: "general" }))
       ];
 
       await Promise.all(toolRecordings);
@@ -156,7 +156,7 @@ describe("Race Condition Handling", () => {
         Promise.resolve().then(() => engine.recordWorkflowUsage("tdd", "session-test")),
         Promise.resolve().then(() => engine.recordToolUsage("guide", { action: "check" })),
         Promise.resolve().then(() => engine.recordWorkflowUsage("bug-hunt", "session-test2")),
-        Promise.resolve().then(() => engine.recordToolUsage("flow", { mode: "on" })),
+        Promise.resolve().then(() => engine.recordToolUsage("approach", { set: "rapid" })),
         Promise.resolve().then(() => engine.recordWorkflowUsage("general", "session-test3"))
       ];
 
@@ -243,7 +243,7 @@ describe("Race Condition Handling", () => {
         }),
         Promise.resolve().then(() => {
           engine2.recordWorkflowUsage("bug-hunt", "engine2-context");
-          engine2.recordToolUsage("flow", { mode: "on" });
+          engine2.recordToolUsage("guide", { action: "check" });
         })
       ];
 

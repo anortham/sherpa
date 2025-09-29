@@ -60,7 +60,6 @@ export interface UserBehaviorMetrics {
   workflowSwitchFrequency: number;
   contextAwarenessAccuracy: number;
   predictiveHintAcceptanceRate: number;
-  flowModeUsage: number;
 }
 
 export interface UserProfile {
@@ -73,7 +72,6 @@ export interface UserProfile {
   preferences: {
     defaultWorkflow: string;
     celebrationLevel: string;
-    flowModeEnabled: boolean;
     predictiveHintsEnabled: boolean;
     learningEnabled: boolean;
   };
@@ -109,17 +107,6 @@ export interface AdaptiveHint {
   learningBasis: string[];
 }
 
-export interface FlowState {
-  isActive: boolean;
-  intensity: 'whisper' | 'gentle' | 'active';
-  contextualAwareness: boolean;
-  backgroundTracking: boolean;
-  predictiveHints: boolean;
-  lastHintTime: Date;
-  hintCooldown: number;
-  sessionFocus: string;
-  interruptionCount: number;
-}
 
 export interface LearningSession {
   sessionId: string;
@@ -135,7 +122,6 @@ export interface LearningSession {
     stepsCompleted: number;
     timeToCompletion: number;
     errorRate: number;
-    flowStateTime: number;
   };
 }
 

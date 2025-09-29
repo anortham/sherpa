@@ -8,14 +8,12 @@ import {
   UserBehaviorMetrics,
   PredictiveContext,
   AdaptiveHint,
-  FlowState,
   LearningSession
 } from "../types";
 
 export class AdaptiveLearningEngine {
   private userProfile: UserProfile;
   private currentSession: LearningSession;
-  private flowState: FlowState;
   private sherpaHome: string;
   private profilePath: string;
   private sessionStartTime: Date;
@@ -31,18 +29,6 @@ export class AdaptiveLearningEngine {
     // Initialize default user profile
     this.userProfile = this.createDefaultProfile();
 
-    // Initialize flow state
-    this.flowState = {
-      isActive: false,
-      intensity: 'gentle',
-      contextualAwareness: true,
-      backgroundTracking: true,
-      predictiveHints: true,
-      lastHintTime: new Date(0),
-      hintCooldown: 30000, // 30 seconds
-      sessionFocus: '',
-      interruptionCount: 0
-    };
 
     // Initialize current session
     this.currentSession = {
@@ -79,13 +65,11 @@ export class AdaptiveLearningEngine {
         preferredCelebrationLevel: 'full',
         workflowSwitchFrequency: 0,
         contextAwarenessAccuracy: 0,
-        predictiveHintAcceptanceRate: 0,
-        flowModeUsage: 0
+        predictiveHintAcceptanceRate: 0
       },
       preferences: {
         defaultWorkflow: 'general',
         celebrationLevel: 'full',
-        flowModeEnabled: false,
         predictiveHintsEnabled: true,
         learningEnabled: true
       },
@@ -118,9 +102,6 @@ export class AdaptiveLearningEngine {
         this.userProfile.lastActive = new Date();
 
         // Apply learned preferences safely
-        if (this.userProfile.preferences?.flowModeEnabled !== undefined) {
-          this.flowState.isActive = this.userProfile.preferences.flowModeEnabled;
-        }
         if (this.userProfile.preferences?.celebrationLevel) {
           this.currentSession.celebrationLevel = this.userProfile.preferences.celebrationLevel;
         }
@@ -224,8 +205,7 @@ export class AdaptiveLearningEngine {
       preferredCelebrationLevel: typeof metrics.preferredCelebrationLevel === 'string' ? metrics.preferredCelebrationLevel : defaults.preferredCelebrationLevel,
       workflowSwitchFrequency: typeof metrics.workflowSwitchFrequency === 'number' ? metrics.workflowSwitchFrequency : defaults.workflowSwitchFrequency,
       contextAwarenessAccuracy: typeof metrics.contextAwarenessAccuracy === 'number' ? metrics.contextAwarenessAccuracy : defaults.contextAwarenessAccuracy,
-      predictiveHintAcceptanceRate: typeof metrics.predictiveHintAcceptanceRate === 'number' ? metrics.predictiveHintAcceptanceRate : defaults.predictiveHintAcceptanceRate,
-      flowModeUsage: typeof metrics.flowModeUsage === 'number' ? metrics.flowModeUsage : defaults.flowModeUsage
+      predictiveHintAcceptanceRate: typeof metrics.predictiveHintAcceptanceRate === 'number' ? metrics.predictiveHintAcceptanceRate : defaults.predictiveHintAcceptanceRate
     };
   }
 
@@ -239,7 +219,6 @@ export class AdaptiveLearningEngine {
     return {
       defaultWorkflow: typeof preferences.defaultWorkflow === 'string' ? preferences.defaultWorkflow : defaults.defaultWorkflow,
       celebrationLevel: typeof preferences.celebrationLevel === 'string' ? preferences.celebrationLevel : defaults.celebrationLevel,
-      flowModeEnabled: typeof preferences.flowModeEnabled === 'boolean' ? preferences.flowModeEnabled : defaults.flowModeEnabled,
       predictiveHintsEnabled: typeof preferences.predictiveHintsEnabled === 'boolean' ? preferences.predictiveHintsEnabled : defaults.predictiveHintsEnabled
     };
   }
@@ -499,9 +478,9 @@ export class AdaptiveLearningEngine {
   }
 
   generateAdaptiveHint(context: PredictiveContext): AdaptiveHint | null {
-    // Don't generate hints too frequently
-    const timeSinceLastHint = new Date().getTime() - this.flowState.lastHintTime.getTime();
-    if (timeSinceLastHint < this.flowState.hintCooldown) {
+    // Don't generate hints too frequently (30 second cooldown)
+    const timeSinceLastHint = new Date().getTime() - this.lastActionTime.getTime();
+    if (timeSinceLastHint < 30000) {
       return null;
     }
 
@@ -662,7 +641,8 @@ export class AdaptiveLearningEngine {
         (this.userProfile.behaviorMetrics.predictiveHintAcceptanceRate * 0.7) + (sessionAcceptanceRate * 0.3);
     }
 
-    this.flowState.lastHintTime = new Date();
+    // Update last action time to prevent hint spam
+    this.lastActionTime = new Date();
   }
 
   setCelebrationLevel(level: string): void {
@@ -677,38 +657,6 @@ export class AdaptiveLearningEngine {
     void this.saveUserProfile();
   }
 
-  updateFlowState(mode: string, options?: any): FlowState {
-    switch (mode) {
-      case 'on':
-        this.flowState.isActive = true;
-        this.flowState.intensity = 'gentle';
-        this.flowState.hintCooldown = 30000; // Reset to default 30 seconds
-        this.userProfile.preferences.flowModeEnabled = true;
-        break;
-
-      case 'whisper':
-        this.flowState.isActive = true;
-        this.flowState.intensity = 'whisper';
-        this.flowState.hintCooldown = 120000; // 2 minutes
-        this.userProfile.preferences.flowModeEnabled = true;
-        break;
-
-      case 'active':
-        this.flowState.isActive = true;
-        this.flowState.intensity = 'active';
-        this.flowState.hintCooldown = 15000; // 15 seconds
-        this.userProfile.preferences.flowModeEnabled = true;
-        break;
-
-      case 'off':
-        this.flowState.isActive = false;
-        this.userProfile.preferences.flowModeEnabled = false;
-        break;
-    }
-
-    this.saveUserProfile(); // Persist preference changes
-    return this.flowState;
-  }
 
   getPersonalizedSuggestions(): string[] {
     const suggestions: string[] = [];
@@ -736,9 +684,7 @@ export class AdaptiveLearningEngine {
     }
 
     // Celebration level optimization (lowered thresholds for testing)
-    if (this.userProfile.behaviorMetrics.predictiveHintAcceptanceRate > 0.6) {
-      suggestions.push("You respond well to guidance - consider keeping flow mode enabled");
-    } else if (this.userProfile.behaviorMetrics.predictiveHintAcceptanceRate < 0.5) {
+    if (this.userProfile.behaviorMetrics.predictiveHintAcceptanceRate < 0.5) {
       suggestions.push("You prefer independence - try 'whisper' celebration level for minimal interruption");
     }
 
@@ -785,9 +731,6 @@ export class AdaptiveLearningEngine {
     }
   }
 
-  getFlowState(): FlowState {
-    return this.flowState;
-  }
 
   getCurrentSession(): LearningSession {
     return this.currentSession;

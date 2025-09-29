@@ -70,10 +70,9 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 
 ### 4. Start Coding!
 
-In Claude, the AI will now have access to three powerful tools:
+In Claude, the AI will now have access to two powerful tools:
 - `guide` - Expert guidance for your next step in the workflow
 - `approach` - Choose and switch between development approaches
-- `flow` - Enter adaptive flow state with intelligent guidance
 
 Your workflows are now available across all your projects! 🎉
 
@@ -135,6 +134,13 @@ Quick prototyping with retroactive tests. Use for:
 - Spikes and experiments
 - Proof of concepts
 - Demo preparation
+
+### 📋 Planning (planning.yaml)
+Pure planning workflow - research, understand, design, and document before implementation. Ideal for:
+- Architecture design
+- Feature specification
+- Requirements analysis
+- Research and documentation
 
 ### ♻️ Refactor (refactor.yaml)
 Safe refactoring with test coverage. Perfect for:
@@ -262,7 +268,7 @@ Sherpa transforms AI development through behavioral science:
 
 ### Design Philosophy
 - **Suggestive, not prescriptive**: Guides without constraining creativity
-- **Lightweight**: Just 3 intuitive tools, minimal context usage, maximum behavioral impact
+- **Lightweight**: Just 2 intuitive tools, minimal context usage, maximum behavioral impact
 - **Customizable**: Your workflows, your celebrations, your development culture
 - **Test-focused**: Because AI-generated code needs systematic validation
 - **Joy-Driven**: Makes systematic development feel rewarding and satisfying
@@ -276,7 +282,7 @@ Sherpa transforms AI development through behavioral science:
 - If missing, run `bun run setup` to reinstall
 
 ### AI Not Following Workflow
-- Remind Claude to use the `next` tool regularly - Sherpa will celebrate this!
+- Remind Claude to use the `guide` tool regularly - Sherpa will celebrate this!
 - The behavioral adoption system provides positive reinforcement automatically
 - Consider adjusting workflow suggestions to be more specific and encouraging
 - Check if celebrations and progress tracking are motivating consistent tool usage

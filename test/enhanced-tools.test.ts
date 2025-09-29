@@ -247,62 +247,6 @@ describe("Enhanced Tool Handlers with Learning Integration", () => {
     });
   });
 
-  describe("Flow Tool", () => {
-    test("should handle basic flow mode activation", () => {
-      const args = { mode: "on" };
-
-      expect(args.mode).toBe("on");
-    });
-
-    test("should handle different flow intensities", () => {
-      const intensities = ["whisper", "on", "active"];
-
-      intensities.forEach(intensity => {
-        const args = { mode: intensity };
-
-        expect(args.mode).toBe(intensity);
-      });
-    });
-
-    test("should handle hint requests", () => {
-      const args = { mode: "hint" };
-
-      expect(args.mode).toBe("hint");
-    });
-
-    test("should handle celebration level configuration", () => {
-      const celebrationArgs = {
-        mode: "celebrate",
-        celebration: "whisper"
-      };
-
-      expect(celebrationArgs.mode).toBe("celebrate");
-      expect(celebrationArgs.celebration).toBe("whisper");
-
-      // Test all celebration levels
-      const levels = ["full", "minimal", "whisper", "off"];
-      levels.forEach(level => {
-        const args = { mode: "celebrate", celebration: level };
-        expect(args.celebration).toBe(level);
-      });
-    });
-
-    test("should validate flow mode descriptions", () => {
-      const modeDescriptions = {
-        "on": "gentle adaptive flow",
-        "whisper": "ultra-minimal guidance",
-        "active": "enhanced AI assistance",
-        "hint": "get smart suggestion",
-        "off": "disable",
-        "celebrate": "configure celebration level"
-      };
-
-      Object.entries(modeDescriptions).forEach(([mode, description]) => {
-        expect(description).toBeTruthy();
-        expect(typeof description).toBe("string");
-      });
-    });
-  });
 
   describe("Natural Language Response Generation", () => {
     test("should format guide responses naturally", () => {
@@ -504,7 +448,7 @@ describe("Enhanced Tool Handlers with Learning Integration", () => {
         { tool: "guide", args: { action: "check" } },
         { tool: "guide", args: { action: "done", completed: "wrote test" } },
         { tool: "approach", args: { set: "tdd" } },
-        { tool: "flow", args: { mode: "on" } }
+        { tool: "approach", args: { set: "planning" } }
       ];
 
       // Simulate tracking each event
@@ -515,8 +459,7 @@ describe("Enhanced Tool Handlers with Learning Integration", () => {
       });
 
       expect(usageFrequency.guide).toBe(2);
-      expect(usageFrequency.approach).toBe(1);
-      expect(usageFrequency.flow).toBe(1);
+      expect(usageFrequency.approach).toBe(2);
     });
 
     test("should track workflow usage patterns", () => {
