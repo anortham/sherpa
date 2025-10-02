@@ -1,0 +1,132 @@
+name: "Code Review"
+description: "Systematic review of pull requests - constructive feedback that improves code quality"
+trigger_hints:
+  - "review"
+  - "pr"
+  - "pull request"
+  - "code review"
+  - "merge request"
+  - "feedback"
+
+phases:
+  - name: "📋 Understand Context"
+    guidance: "Understand WHY before judging HOW - context drives good review"
+    suggestions:
+      - "Read PR title and description completely"
+      - "Review linked issues/tickets (what problem is being solved?)"
+      - "Understand acceptance criteria (what defines 'done'?)"
+      - "Check PR size: small (< 300 lines) or large (needs different approach)"
+      - "Look at files changed list (scope reasonable for stated goal?)"
+      - "Check if tests are included (red flag if missing)"
+      - "Review CI/CD status (tests passing? linter clean?)"
+      - "Note if this is draft PR (feedback style differs)"
+
+    conditionals:
+      - condition: "If PR is very large (500+ lines)"
+        action: "Request split into smaller PRs. Large PRs hide bugs and are hard to review thoroughly. Suggest logical boundaries."
+      - condition: "If PR description is empty or unclear"
+        action: "Ask for clarification BEFORE reviewing code. Can't review if you don't understand intent. Request description update."
+      - condition: "If tests are missing and not explained why"
+        action: "Ask about test plan. Tests missing = incomplete PR usually. Understand if this is temp/WIP or oversight."
+      - condition: "If CI is failing"
+        action: "Don't review until CI is green. Failing tests/linter = code isn't ready. Author should fix first."
+
+    anti_patterns:
+      - pattern: "Jumping straight to code without reading description"
+        guidance: "You'll review with wrong assumptions. Context first, code second. Understand 'why' before evaluating 'how'."
+      - pattern: "Reviewing based on title alone"
+        guidance: "Titles are summaries, not specifications. Read full description and linked issues. Get complete picture."
+      - pattern: "Approving large PR without thorough review"
+        guidance: "Rubber-stamping. Large PRs need extra scrutiny, not less. If too large to review properly, request split."
+
+  - name: "🔍 Review Code Quality"
+    guidance: "Systematic review for correctness, clarity, and maintainability"
+    suggestions:
+      - "Does implementation match described approach?"
+      - "Are edge cases handled? (null, empty, boundary values, errors)"
+      - "Is error handling appropriate? (no silent failures)"
+      - "Are variable/function names clear and descriptive?"
+      - "Is code reasonably DRY? (not over-abstracted, but not duplicated)"
+      - "Are there obvious performance issues? (N+1 queries, unnecessary loops)"
+      - "Is code consistent with existing codebase style?"
+      - "Are there security issues? (SQL injection, XSS, auth bypass)"
+
+    conditionals:
+      - condition: "If you spot a bug"
+        action: "Comment with specific example input that breaks it. Help author understand, don't just say 'this is wrong'."
+      - condition: "If code works but is unclear"
+        action: "Suggest clarifying rename or comment. Code is for humans. If you're confused, future maintainers will be too."
+      - condition: "If you see nitpick (style, personal preference)"
+        action: "Prefix with 'nit:' so author knows it's optional. Don't block PR on nits unless codebase has strict style."
+      - condition: "If you don't understand why code does something"
+        action: "ASK, don't assume it's wrong. There might be context you're missing. Questions > assumptions."
+
+    anti_patterns:
+      - pattern: "Only checking if code works, ignoring readability"
+        guidance: "Code is read 10x more than written. Readability IS quality. Working but unreadable code is technical debt."
+      - pattern: "Focusing on style/formatting instead of logic"
+        guidance: "Linter handles style. Review for correctness, edge cases, design. Don't waste time on formatting."
+      - pattern: "Approving without actually reading the code"
+        guidance: "Your name on approval = you vouch for quality. If you didn't read it, don't approve it. Accountability matters."
+
+  - name: "🧪 Verify Tests"
+    guidance: "Tests prove code works AND document intended behavior"
+    suggestions:
+      - "Are tests included for new functionality?"
+      - "Do tests cover happy path AND edge cases?"
+      - "Are error cases tested?"
+      - "Do test names clearly describe what they test?"
+      - "Are tests independent? (no shared state, can run in any order)"
+      - "Do tests use realistic test data?"
+      - "Are integration tests included if needed?"
+      - "Do tests actually test behavior (not just existence)?"
+
+    conditionals:
+      - condition: "If tests only cover happy path"
+        action: "Request edge case tests. Bugs hide in edge cases. Happy path is necessary but not sufficient."
+      - condition: "If tests are flaky or timing-dependent"
+        action: "Flag this. Flaky tests are worse than no tests - they hide real failures. Must be deterministic."
+      - condition: "If tests mock too much (testing mocks, not real behavior)"
+        action: "Suggest integration test. Over-mocking = false confidence. Some real integration needed."
+      - condition: "If no tests and author says 'tested manually'"
+        action: "Manual testing doesn't prevent regressions. Request automated tests. Manual testing complements, doesn't replace."
+
+    anti_patterns:
+      - pattern: "Approving PR without tests because 'it's a small change'"
+        guidance: "Small changes break too. Tests aren't about size, they're about preventing regressions. All changes need tests."
+      - pattern: "Not actually running tests locally"
+        guidance: "CI can have blind spots. Run tests on your machine. Verify they actually pass and test the right thing."
+      - pattern: "Accepting promise of 'I'll add tests later'"
+        guidance: "Later never comes. Tests now or no merge. This is non-negotiable for code quality."
+
+  - name: "✅ Provide Feedback"
+    guidance: "Constructive, specific feedback that helps author improve"
+    suggestions:
+      - "Separate critical issues from suggestions (block vs nice-to-have)"
+      - "Explain WHY, not just WHAT (help author learn)"
+      - "Suggest specific improvements (don't just say 'this is bad')"
+      - "Point out good things too (positive reinforcement works)"
+      - "Use questions for unclear parts ('Why X instead of Y?')"
+      - "Be respectful and assume good intent"
+      - "Offer to pair program if feedback is extensive"
+      - "Set clear expectations (approve/request changes/comment only)"
+
+    conditionals:
+      - condition: "If you have many comments"
+        action: "Consider sync discussion (call, pair session). Back-and-forth in comments is slow. Talk it out."
+      - condition: "If feedback is mostly stylistic"
+        action: "Approve with optional suggestions. Don't block on style. Suggest linter rules for next time."
+      - condition: "If you found critical bug or security issue"
+        action: "Request changes. Explain impact clearly. Offer to help fix if urgent. Critical issues block merge."
+      - condition: "If author is junior and needs learning"
+        action: "Add extra context in feedback. Link to docs. Explain patterns. Use review as teaching moment."
+
+    anti_patterns:
+      - pattern: "Demanding your preferred approach without explaining trade-offs"
+        guidance: "Multiple valid approaches exist. If author's works, explain why yours is better (if it is). Don't force preference."
+      - pattern: "Being vague ('this needs work', 'unclear', 'confusing')"
+        guidance: "Unhelpful. Be specific. What exactly needs work? How? Why? Give actionable feedback."
+      - pattern: "Personal criticism instead of code criticism"
+        guidance: "Review code, not person. 'This function is unclear' not 'You write unclear code'. Professional feedback only."
+      - pattern: "Approving with unaddressed critical issues in comments"
+        guidance: "Comments = optional. Request changes if blocking issues exist. Don't say 'LGTM' when it doesn't."

@@ -1,0 +1,107 @@
+name: "Emergency Hotfix"
+description: "Fast, safe fixes for production issues - minimize risk while moving quickly"
+trigger_hints:
+  - "urgent"
+  - "production"
+  - "hotfix"
+  - "critical"
+  - "emergency"
+  - "outage"
+  - "down"
+  - "sev1"
+  - "p0"
+
+phases:
+  - name: "🚨 Assess & Verify"
+    guidance: "Confirm severity and impact BEFORE rushing - not every fire is a 5-alarm"
+    suggestions:
+      - "Verify the issue is actually happening in production (not just reported)"
+      - "Identify blast radius: how many users affected? which features?"
+      - "Check if workaround exists (can buy time for proper fix)"
+      - "Confirm it's truly urgent vs just loud (customer screaming ≠ critical)"
+      - "Review recent deployments: what changed? when?"
+      - "Check monitoring/logs for error spike or anomaly"
+      - "Determine if rollback is viable option (fastest fix)"
+      - "Assess data corruption risk (is data at risk if we wait?)"
+
+    conditionals:
+      - condition: "If rollback is safe and viable"
+        action: "ROLLBACK IMMEDIATELY. Fix properly in next deploy. Rollback is fastest, safest hotfix. Don't code when you can rollback."
+      - condition: "If only affecting small subset of users"
+        action: "Consider temporary mitigation (disable feature, route around). Fix properly next day. Don't rush for small impact."
+      - condition: "If you can't reproduce in staging/local"
+        action: "DO NOT GUESS. Gather more logs/data. Blind fixes often make things worse. Get reproduction first."
+      - condition: "If data corruption is ongoing"
+        action: "STOP THE BLEEDING FIRST. Disable write path, stop background job, whatever prevents more damage. Then fix."
+
+    anti_patterns:
+      - pattern: "Immediately jumping to code without understanding impact"
+        guidance: "Panic coding = more bugs. Take 5 minutes to assess. Rushing without understanding makes outages longer."
+      - pattern: "Treating all production issues as critical"
+        guidance: "Not everything is a hotfix. Broken button ≠ data loss. Use appropriate process for actual severity."
+      - pattern: "Skipping rollback option because 'we need the new feature'"
+        guidance: "Broken feature is worse than no feature. Rollback, fix properly, redeploy. Don't compound mistakes."
+
+  - name: "🎯 Minimal Fix"
+    guidance: "Smallest possible change to stop the bleeding - surgery, not renovation"
+    suggestions:
+      - "Find exact line/function causing issue (precision matters)"
+      - "Write ONE test that reproduces the bug (locks it down)"
+      - "Make MINIMAL change to fix (resist temptation to improve other things)"
+      - "Verify test now passes (proof fix works)"
+      - "Run full test suite locally (ensure no regressions)"
+      - "Test in staging environment that mirrors production"
+      - "Get peer review BEFORE deploying (second pair of eyes)"
+      - "Document WHY this is minimal fix in commit message"
+
+    conditionals:
+      - condition: "If minimal fix feels hacky or wrong"
+        action: "THAT'S OK. Hotfix = stop bleeding. Proper fix = separate PR later. Document tech debt, deploy minimal fix."
+      - condition: "If you can't write test quickly"
+        action: "Manual testing is acceptable for emergency. But write test IMMEDIATELY after deploy. Don't skip it."
+      - condition: "If fix requires database migration"
+        action: "EXTREME CAUTION. Migrations in hotfix are high-risk. Consider data fix script instead. Consult senior dev."
+      - condition: "If fix touches critical code path"
+        action: "Get second review MANDATORY. Critical paths failing worse = bigger outage. Don't solo this."
+
+    anti_patterns:
+      - pattern: "Fixing bug + refactoring + adding features"
+        guidance: "SCOPE CREEP IN EMERGENCY. Fix ONLY the bug. Everything else later. Hotfix is not time for improvement."
+      - pattern: "Deploying to production without staging test"
+        guidance: "DOUBLE OUTAGE RISK. Always test hotfix in staging first. Staging exists for this exact reason."
+      - pattern: "Skipping test because 'it's urgent'"
+        guidance: "Urgency doesn't excuse regressions. Write test. If you break something else, outage is WORSE. Test is non-negotiable."
+      - pattern: "Making fix in production database directly"
+        guidance: "CAREER-LIMITING. Never manual production data changes. Script it, review it, test it, then run it. Document everything."
+
+  - name: "📝 Deploy & Document"
+    guidance: "Get fix out safely and ensure proper fix follows"
+    suggestions:
+      - "Deploy to staging first, verify fix works there"
+      - "Deploy to production with rollback plan ready"
+      - "Monitor error rates/metrics for 15+ minutes after deploy"
+      - "Verify issue is resolved with affected users if possible"
+      - "Document incident timeline (when discovered, when fixed, impact)"
+      - "Create follow-up ticket for proper fix (with tech debt details)"
+      - "Add TODO comment in code pointing to proper fix ticket"
+      - "Schedule post-mortem if incident was significant"
+
+    conditionals:
+      - condition: "If metrics don't improve after deploy"
+        action: "ROLLBACK IMMEDIATELY. Your fix didn't work or made it worse. Regroup, re-assess. Don't iterate in production."
+      - condition: "If partial rollout is possible (feature flag, canary)"
+        action: "Deploy to 5% of traffic first. Monitor. Then roll out to rest. Reduces risk of making outage worse."
+      - condition: "If fix has multiple components (API + frontend + worker)"
+        action: "Deploy in order that prevents errors. Usually: backend first (backwards compatible), then frontend. Coordinate carefully."
+      - condition: "If you're unsure if fix worked"
+        action: "Don't declare victory prematurely. Check logs, errors, user reports. Confirm issue is actually resolved."
+
+    anti_patterns:
+      - pattern: "Declaring success and moving on without monitoring"
+        guidance: "Fix might fail after 10 minutes (edge case, cache expiry, etc.). Monitor for 30+ minutes. Stay engaged."
+      - pattern: "Not creating ticket for proper fix"
+        guidance: "Hotfix debt becomes permanent. Create ticket IMMEDIATELY while context is fresh. Schedule proper fix this sprint."
+      - pattern: "Skipping post-mortem for 'small' incidents"
+        guidance: "Small incidents reveal process gaps. Quick post-mortem (15 min) prevents next incident. Always learn."
+      - pattern: "Deploying without alerting team"
+        guidance: "Hotfix deploy at 2am? Alert team on-call. They need to know state changed. Communication prevents confusion."

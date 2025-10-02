@@ -1,41 +1,130 @@
 name: "Test-First TDD"
 description: "Pure test-driven development - write tests before any implementation"
-trigger_hints: 
+trigger_hints:
   - "extractor"
   - "parser"
   - "transformer"
   - "new feature"
   - "type"
   - "types"
+  - "function"
+  - "class"
+  - "module"
+
 phases:
   - name: "📋 Define Contract"
-    guidance: "Define what success looks like BEFORE coding"
+    guidance: "Define what success looks like BEFORE coding - this prevents building the wrong thing"
     suggestions:
-      - "Write interface/type definitions first"
-      - "Create test file with empty test cases"
-      - "Add test descriptions for every edge case"
-      - "Consider error conditions and boundaries"
-      
+      - "Create interface/type file (e.g., user-service.interface.ts, parser.types.ts)"
+      - "Define function signatures with parameter types and return types"
+      - "Document expected inputs and outputs with JSDoc/TSDoc comments"
+      - "List error conditions explicitly (what throws? what returns null/undefined?)"
+      - "Document boundary conditions (empty input, max values, edge cases)"
+      - "If interface unclear: search codebase for similar patterns FIRST"
+      - "If using external API/library: read official docs to verify signatures"
+
+    conditionals:
+      - condition: "If you don't know what the interface should be"
+        action: "Use search/read tools to find similar patterns in codebase FIRST. Don't guess - verify."
+      - condition: "If external API or library is involved"
+        action: "Read official documentation to verify exact signatures, types, and error behavior before defining contract"
+      - condition: "If dealing with complex data transformations"
+        action: "Write example input → output pairs in comments first, then derive interface from examples"
+
+    anti_patterns:
+      - pattern: "Writing implementation code in this phase"
+        guidance: "STOP - you're in the wrong phase. No implementation until tests exist! This phase is ONLY for defining the contract."
+      - pattern: "Making assumptions about types or behavior"
+        guidance: "Don't assume - verify. Read existing code, check docs, look at actual usage. Assumptions = bugs."
+      - pattern: "Skipping documentation of edge cases"
+        guidance: "Edge cases ARE the specification. If you don't document them, you won't test them, and they'll break in production."
+
   - name: "🧪 Implement Tests"
-    guidance: "Tests are your specification - make them thorough"
+    guidance: "Tests are your specification - make them thorough. Tests written now prevent hours of debugging later."
     suggestions:
-      - "Write all tests BEFORE any implementation"
-      - "Include edge cases and error conditions"
-      - "Run tests - they should all fail (red phase)"
-      - "Each test should test ONE thing"
-      
+      - "Create test file following project conventions ([name].test.ts, [name].spec.ts, test_[name].py)"
+      - "Write describe() or test suite block for the module/class/function"
+      - "Write test for happy path: expected input → expected output (the baseline)"
+      - "Write test for EACH edge case you documented (empty, null, boundary values)"
+      - "Write test for EACH error condition (invalid input, missing data, etc.)"
+      - "Run tests: ALL must fail with 'not defined', 'not implemented', or similar"
+      - "If a test passes before implementation exists: the test is broken - fix it"
+      - "Each test should verify ONE specific behavior (atomic tests)"
+
+    conditionals:
+      - condition: "If test passes before you've written implementation"
+        action: "Test is incorrect or not actually testing behavior. Fix test to verify actual functionality, not just existence."
+      - condition: "If you can't think of edge cases"
+        action: "Use checklist: empty input, null, undefined, wrong type, zero, negative, max value, boundary conditions, concurrent access"
+      - condition: "If tests fail for wrong reason (not 'function not defined')"
+        action: "Fix test setup - tests should fail because implementation is missing, not because test is broken"
+      - condition: "If writing integration test instead of unit test"
+        action: "TDD works best with unit tests. Mock dependencies. Test ONE unit in isolation."
+
+    anti_patterns:
+      - pattern: "Writing only 1-2 tests (just happy path)"
+        guidance: "Insufficient coverage. You need: happy path + edge cases + error cases. Minimum 3-5 tests for any non-trivial function."
+      - pattern: "Testing multiple behaviors in one test"
+        guidance: "Split into separate test cases. One test = one behavior. Makes failures easier to diagnose."
+      - pattern: "Writing tests that depend on each other (test execution order)"
+        guidance: "Tests must be independent. Each test should set up its own state and not depend on other tests running first."
+      - pattern: "Skipping error case tests ('I'll add those later')"
+        guidance: "No. Error cases are where bugs hide. Write error tests NOW while requirements are fresh."
+
   - name: "💻 Minimal Implementation"
-    guidance: "Write ONLY enough code to pass tests"
+    guidance: "Write ONLY enough code to pass tests - nothing more. Over-engineering comes later in refactor phase."
     suggestions:
-      - "No extra features not covered by tests"
-      - "Keep it simple - refactor later"
-      - "All tests must pass before moving on"
-      - "Resist the urge to over-engineer"
-      
+      - "Implement the exact contract/interface you defined in phase 1"
+      - "Start with simplest test - make it pass with minimal code"
+      - "Run tests after each function/method (rapid feedback loop)"
+      - "Add code for edge cases only if tests exist for them"
+      - "Add code for error handling only if tests exist for them"
+      - "ALL tests must pass before marking this phase done"
+      - "If you want to add feature not covered by tests: STOP, go to phase 2, add test first"
+
+    conditionals:
+      - condition: "If test fails unexpectedly (wasn't supposed to fail)"
+        action: "Don't just fix the code - understand WHY it failed. Test revealed incorrect assumption or edge case. This is valuable feedback."
+      - condition: "If you want to add feature or abstraction not covered by tests"
+        action: "STOP immediately. Return to phase 2 (Implement Tests). Add test for new feature first, then implement."
+      - condition: "If implementation is getting complex or messy"
+        action: "That's OK for now - just make tests pass. Refactor phase is next. Don't prematurely optimize."
+      - condition: "If you're copy-pasting code"
+        action: "Make tests pass first (even with duplication), then extract common code in refactor phase"
+
+    anti_patterns:
+      - pattern: "Over-engineering (adding abstractions, design patterns, 'future-proofing')"
+        guidance: "Wrong phase. Make it WORK first (this phase), make it PRETTY later (refactor phase). Tests prevent over-engineering."
+      - pattern: "Implementing features not covered by tests"
+        guidance: "Untested code = broken code waiting to be discovered. No test = no feature. Go write test first."
+      - pattern: "Skipping test runs between changes"
+        guidance: "Run tests after each function. Fast feedback catches bugs immediately. Don't accumulate untested changes."
+      - pattern: "Fixing tests to match implementation"
+        guidance: "NO. Tests are the specification. If test fails, implementation is wrong (or test revealed edge case). Fix code, not tests."
+
   - name: "♻️ Refactor"
-    guidance: "Now make it clean"
+    guidance: "Now make it clean - improve code quality while keeping tests green"
     suggestions:
-      - "Improve code clarity"
-      - "Extract common patterns"
-      - "Tests still passing? Good!"
-      - "Consider performance if needed"
+      - "Look for duplicated code → extract functions/methods"
+      - "Look for unclear names → rename for clarity"
+      - "Look for complex logic → break into smaller functions"
+      - "Look for magic numbers → extract named constants"
+      - "Run tests after EACH refactor (keep tests green)"
+      - "If tests fail after refactor: undo and refactor smaller"
+      - "Consider performance only if you have evidence it's needed"
+
+    conditionals:
+      - condition: "If tests fail after refactoring"
+        action: "UNDO immediately (git checkout or revert changes). Refactor in smaller steps. Run tests more frequently."
+      - condition: "If you see performance issue"
+        action: "Profile first, optimize second. Don't optimize without measuring. Premature optimization wastes time."
+      - condition: "If refactor feels risky"
+        action: "Add MORE tests first to increase safety net, then refactor with confidence"
+
+    anti_patterns:
+      - pattern: "Refactoring without running tests between changes"
+        guidance: "Dangerous. Run tests after EVERY refactor step. Green → refactor → green → refactor. Stay in green."
+      - pattern: "Changing behavior during refactor"
+        guidance: "Refactoring = same behavior, better code. If behavior changes, that's a new feature (needs new tests)."
+      - pattern: "Skipping refactor phase ('code works, ship it')"
+        guidance: "Technical debt accumulates. Clean code now prevents bugs later. Take 5 minutes to clean up."

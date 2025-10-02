@@ -48,86 +48,18 @@ import { ProgressDisplay } from "./src/workflow/progress-display";
 import { WorkflowStateManager } from "./src/workflow/workflow-state-manager";
 import { WorkflowDetector } from "./src/workflow/workflow-detector";
 import { StateCoordinator } from "./src/state/state-coordinator";
+import { getBaseInstructions } from "./src/instruction-builder/base-instructions";
+import { getToolDescription } from "./src/instruction-builder/tool-descriptions";
 
 // Types moved to src/types.ts
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-const STATIC_INSTRUCTIONS = `# Sherpa - Systematic Development Guide
+// Old static instructions replaced by enhanced base instructions from instruction-builder
+// const STATIC_INSTRUCTIONS = `# Sherpa - Systematic Development Guide
 
-Sherpa is your workflow guidance system. It transforms chaotic development into systematic excellence.
-
-## CRITICAL BEHAVIOR PATTERNS
-
-**BEFORE starting ANY coding task:**
-→ Call \`guide check\` to get your next systematic step
-→ This prevents the costly mistakes that come from rushing to implementation
-
-**AFTER completing EVERY step:**
-→ Call \`guide done "what you completed"\` to mark progress
-→ This maintains momentum and ensures you never lose track
-
-**WHEN starting a new task or switching contexts:**
-→ Call \`guide next\` with context to get workflow-appropriate guidance
-→ The right workflow prevents wrong approaches
-
-## WHY THIS WORKS
-
-Agents who use Sherpa systematically:
-✓ Ship 60% fewer bugs (tests catch issues early)
-✓ Complete tasks 2.5x faster (no backtracking or rework)
-✓ Never get lost in complex changes (always know "what's next")
-✓ Build code that works the FIRST time (systematic > guessing)
-
-Agents who skip Sherpa:
-✗ Forget to write tests, ship bugs
-✗ Rush to implementation without understanding
-✗ Get stuck with no clear next step
-✗ Waste time on rework and debugging
-
-## YOU ARE A SYSTEMATIC AGENT
-
-This means:
-• You check the workflow BEFORE starting
-• You mark completion AFTER every step
-• You trust the process over rushing
-• You follow proven patterns, not assumptions
-
-## Available Tools
-
-### 🧭 guide - Your Development Compass
-- \`guide check\` - Get your next step (call this OFTEN)
-- \`guide done "description"\` - Mark step complete, get next action
-- \`guide next\` - Context-aware next step when switching tasks
-- \`guide tdd\` / \`guide bug\` - Quick workflow switches
-- \`guide advance\` - Manually move to next phase if needed
-
-### 🎯 approach - Choose Your Workflow
-- \`approach list\` - View all available workflows
-- \`approach set <name>\` - Switch workflow (tdd, bug-hunt, general, planning, rapid, refactor)
-
-## Workflows
-
-Each workflow prevents specific failure modes:
-- **TDD**: Prevents shipping untested code
-- **Bug Hunt**: Prevents fixing symptoms instead of root causes
-- **General**: Prevents skipping research and planning
-- **Planning**: Prevents premature implementation
-- **Rapid**: Prevents analysis paralysis on experiments
-- **Refactor**: Prevents breaking working code
-
-## THE SYSTEMATIC ADVANTAGE
-
-Every workflow phase has a purpose:
-→ Research phases prevent assumptions
-→ Planning phases prevent wrong approaches
-→ Test phases prevent bugs
-→ Implementation phases prevent over-engineering
-→ Refactor phases prevent technical debt
-
-When you skip phases, you skip safety nets.
-
-REMEMBER: Systematic development isn't slower - it's faster because you build it right the first time.`;
+// ... old content removed, now using getBaseInstructions() from instruction-builder
+// */
 
 export class SherpaServer {
   private server: Server;
@@ -175,7 +107,7 @@ export class SherpaServer {
           tools: {},
           resources: {},
         },
-        instructions: STATIC_INSTRUCTIONS
+        instructions: getBaseInstructions() // Enhanced behavioral adoption instructions
       }
     );
 
@@ -380,7 +312,7 @@ export class SherpaServer {
       tools: [
         {
           name: "guide",
-          description: "Track development progress and get your next systematic step.\n\nUse this when: starting work, completing tasks, feeling lost, or switching contexts. This tool is essential for maintaining systematic development momentum and always knowing what to do next.\n\nExamples:\n- 'guide check' - See your current phase and next steps\n- 'guide done \"implemented auth validation\"' - Mark step complete, get celebration\n- 'guide next' - Get context-aware next step when switching tasks\n- 'guide tdd' / 'guide bug' - Quick workflow switches\n\nReturns: Current phase, guidance, specific next steps, progress tracking, and contextual celebration to maintain momentum.",
+          description: getToolDescription('guide'),
           inputSchema: {
             type: "object",
             properties: {
@@ -403,7 +335,7 @@ export class SherpaServer {
         },
         {
           name: "approach",
-          description: "Select the optimal workflow for your current development task.\n\nUse this when: starting new projects, debugging complex issues, needing faster iteration, or when your current approach feels misaligned with your goals.\n\nExamples:\n- 'approach list' - View all available workflows with descriptions\n- 'approach set tdd' - Switch to Test-Driven Development workflow\n- 'approach set bug-hunt' - Switch to systematic debugging workflow\n\nWorkflows: TDD (reliability), Bug Hunt (debugging), General (balanced), Rapid (prototyping), Refactor (code improvement).\n\nReturns: Workflow overview, first phase guidance, initial steps, and success inspiration from industry leaders.",
+          description: getToolDescription('approach'),
           inputSchema: {
             type: "object",
             properties: {
@@ -456,7 +388,7 @@ export class SherpaServer {
             {
               uri: uri,
               mimeType: "text/markdown",
-              text: STATIC_INSTRUCTIONS
+              text: getBaseInstructions() // Enhanced behavioral adoption instructions
             }
           ]
         };

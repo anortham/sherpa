@@ -1,0 +1,132 @@
+name: "Code Exploration"
+description: "Systematic learning for unfamiliar codebases - understand before modifying"
+trigger_hints:
+  - "explore"
+  - "unfamiliar"
+  - "understand"
+  - "learn"
+  - "new codebase"
+  - "onboarding"
+  - "legacy"
+  - "documentation"
+
+phases:
+  - name: "🗺️ Map Territory"
+    guidance: "Understand structure before diving into code - big picture first, details later"
+    suggestions:
+      - "Check README, CONTRIBUTING, and docs/ folder for architecture overview"
+      - "Look at directory structure (ls -R, tree command, or file explorer)"
+      - "Identify entry points (main.ts, index.ts, app.ts, server.ts)"
+      - "Find configuration files (package.json, tsconfig.json, .env.example)"
+      - "Check test directory structure (how are tests organized?)"
+      - "Look for architectural diagrams or design docs"
+      - "Review package.json dependencies (what libraries are used?)"
+      - "Check git history statistics (which files change most often?)"
+
+    conditionals:
+      - condition: "If README is missing or outdated"
+        action: "Look at test files to understand intended behavior. Tests are living documentation of how code should work."
+      - condition: "If codebase is very large (100+ files)"
+        action: "Start with one feature/module. Don't try to understand everything at once. Pick entry point and trace from there."
+      - condition: "If unclear what the application does"
+        action: "Run it locally. Use it as an end user. Understand problem being solved before studying solution."
+      - condition: "If multiple entry points exist (CLI, web server, workers)"
+        action: "Pick ONE to start. Map it completely before moving to others. Depth-first > breadth-first for understanding."
+
+    anti_patterns:
+      - pattern: "Reading random files without understanding structure"
+        guidance: "Chaos. Start with structure/architecture. Random reading wastes time and builds incorrect mental model."
+      - pattern: "Trying to understand everything at once"
+        action: "Overwhelm. Pick ONE feature to trace end-to-end. Build understanding incrementally."
+      - pattern: "Skipping running the application"
+        guidance: "You need to see what it DOES before understanding how it does it. Run it, use it, break it."
+
+  - name: "🔍 Trace Execution"
+    guidance: "Follow code flow for one feature end-to-end - see how pieces connect"
+    suggestions:
+      - "Pick one simple, user-facing feature to trace"
+      - "Find entry point (HTTP route, CLI command, event handler)"
+      - "Add console.log or debugger at entry point"
+      - "Trigger the feature and step through code with debugger"
+      - "Document the flow: entry → validation → business logic → data layer → response"
+      - "Note which files are involved and their responsibilities"
+      - "Identify patterns (how does this codebase structure logic?)"
+      - "Look for similar features using same pattern"
+
+    conditionals:
+      - condition: "If you get lost in deep call stack"
+        action: "Use debugger call stack view. Work backwards from where you are. Draw diagram of call flow on paper."
+      - condition: "If code uses dependency injection or inversion of control"
+        action: "Find DI container configuration first. Understand how dependencies are wired before tracing execution."
+      - condition: "If heavy use of abstractions/interfaces"
+        action: "Find concrete implementations. Abstract code is hard to trace - focus on actual runtime behavior."
+      - condition: "If async/promise chains are confusing"
+        action: "Use async debugger or add .then() logging at each step. Draw timeline of async operations."
+
+    anti_patterns:
+      - pattern: "Trying to trace complex feature first"
+        guidance: "Start simple. Pick trivial feature (GET /health, --version flag). Build understanding of structure before tackling complexity."
+      - pattern: "Reading code without running it"
+        guidance: "Static reading builds wrong assumptions. RUN the code. Use debugger. See actual execution path."
+      - pattern: "Not taking notes while tracing"
+        guidance: "You'll forget. Write down flow, patterns, questions. Build external memory of codebase structure."
+
+  - name: "📚 Read Key Abstractions"
+    guidance: "Understand the mental model - core types, base classes, key patterns"
+    suggestions:
+      - "Identify core domain types/interfaces (User, Product, Order, etc.)"
+      - "Read base classes if inheritance is used"
+      - "Check for shared utilities/helpers (what's commonly reused?)"
+      - "Look for design patterns (factory, builder, observer, etc.)"
+      - "Understand error handling patterns (exceptions vs error returns?)"
+      - "Review validation logic (where and how is input validated?)"
+      - "Check logging/monitoring patterns (how is observability done?)"
+      - "Identify configuration management (how are settings loaded?)"
+
+    conditionals:
+      - condition: "If codebase uses TypeScript with strong types"
+        action: "Read type definitions first. Types tell you what data flows where. This is architectural documentation."
+      - condition: "If codebase uses object-oriented patterns heavily"
+        action: "Draw class hierarchy diagram. Understand inheritance and composition patterns before reading implementations."
+      - condition: "If codebase is functional (FP style)"
+        action: "Identify core data transformations. Map input → pipeline → output. Focus on data flow, not objects."
+      - condition: "If domain-driven design is used"
+        action: "Find bounded contexts and aggregates. Understand domain model before infrastructure code."
+
+    anti_patterns:
+      - pattern: "Trying to understand implementation before abstractions"
+        guidance: "Backwards. Abstractions define structure. Understand structure, then implementation makes sense."
+      - pattern: "Ignoring tests when learning patterns"
+        guidance: "Tests show HOW abstractions are meant to be used. Test code is usage documentation."
+      - pattern: "Assuming patterns match your previous experience"
+        guidance: "Each codebase is unique. Don't assume factory pattern here works like factory pattern elsewhere. Read the actual code."
+
+  - name: "🎯 Focus on Change Area"
+    guidance: "Now that you understand structure, zoom into area you need to modify"
+    suggestions:
+      - "Identify exact files you'll need to change"
+      - "Read those files completely (not just the function you'll modify)"
+      - "Understand all code paths in those files"
+      - "Find tests for code you'll modify (these are your safety net)"
+      - "Check git blame to see who wrote it and when"
+      - "Read related files (imports, dependencies)"
+      - "Identify edge cases and error handling in area"
+      - "Write questions for team/documentation about unclear parts"
+
+    conditionals:
+      - condition: "If no tests exist for code you'll modify"
+        action: "Write characterization tests FIRST (test current behavior). These prevent breaking things when you change code."
+      - condition: "If code is very complex or unclear"
+        action: "Ask for code review or pair programming session. Don't guess at critical logic - get expert explanation."
+      - condition: "If you need to modify multiple components"
+        action: "Make changes in small, independent steps. One component at a time. Test between changes."
+      - condition: "If code has bugs or code smells"
+        action: "Note them but don't fix yet. Make your change work first, then refactor in separate commit."
+
+    anti_patterns:
+      - pattern: "Making changes without understanding surrounding code"
+        guidance: "Recipe for bugs. Understand context - how is this function called? What depends on it? Don't change in isolation."
+      - pattern: "Refactoring while learning"
+        guidance: "Don't refactor code you don't understand. Make functional changes first, learn deeply, THEN refactor."
+      - pattern: "Skipping existing tests"
+        guidance: "Tests show intended behavior. Read them. Run them. They tell you what NOT to break."
