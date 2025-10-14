@@ -98,7 +98,7 @@ describe("SherpaServer regression coverage", () => {
 
   test("workflow completion records all steps across phases", async () => {
     const server = createServer();
-    const handleGuide = (server as any).handleGuide.bind(server);
+    const handleGuide = (server as any).guideHandler.handleGuide.bind((server as any).guideHandler);
     const tracker = (server as any).progressTracker;
     const workflowMap: Map<string, any> = (server as any).workflows;
     await (server as any).loadWorkflows();
@@ -119,7 +119,7 @@ describe("SherpaServer regression coverage", () => {
       return originalWorkflowCompletion(workflowType, stepsCompleted, timeSpent);
     };
 
-    await handleGuide({ action: "check" });
+    await handleGuide({ action: "done" });
 
     const totalSuggestions = workflow.phases.reduce((sum: number, phase: any) => sum + phase.suggestions.length, 0);
     expect(workflowCall).not.toBeNull();
@@ -140,7 +140,7 @@ describe("SherpaServer regression coverage", () => {
 
   test("guide tool tolerates missing arguments", () => {
     const server = createServer();
-    const handleGuide = (server as any).handleGuide.bind(server);
+    const handleGuide = (server as any).guideHandler.handleGuide.bind((server as any).guideHandler);
 
     expect(() => {
       handleGuide(undefined);
