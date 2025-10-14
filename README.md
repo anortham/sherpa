@@ -148,6 +148,24 @@ Safe refactoring with test coverage. Perfect for:
 - Performance improvements
 - Restructuring
 
+### 🔥 Hotfix (hotfix.yaml)
+Emergency bug fixes with minimal process. Use for:
+- Production incidents
+- Critical bugs requiring immediate attention
+- Time-sensitive fixes
+
+### 🔍 Exploration (exploration.yaml)
+Exploratory development and experimentation. Great for:
+- Learning new technologies
+- Investigating approaches
+- Prototyping without commitment
+
+### 👁️ Code Review (code-review.yaml)
+Thorough code review process. Ideal for:
+- Reviewing pull requests
+- Auditing code quality
+- Mentoring and feedback
+
 ## Managing Workflows
 
 ### Available Commands
@@ -202,11 +220,10 @@ Check out `workflows/examples/` for additional specialized workflows:
 - 📚 **Documentation** - For writing guides and API docs
 - 🔒 **Security Audit** - For defensive security reviews
 - 📈 **Performance** - For optimization projects
-- 👁️ **Code Review** - For thorough code reviews
 
 Copy any example to your workflows directory:
 ```bash
-cp ~/.sherpa/workflows/examples/documentation.yaml ~/.sherpa/workflows/
+cp workflows/examples/documentation.yaml ~/.sherpa/workflows/
 ```
 
 ## Usage Example

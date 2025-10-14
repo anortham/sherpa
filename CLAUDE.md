@@ -9,7 +9,7 @@ Sherpa is a Model Context Protocol (MCP) server that transforms AI-assisted deve
 - 📈 **Progress Tracking**: Monitors workflow completion, milestones, and usage patterns
 - 🎉 **Dynamic Celebrations**: Context-aware encouragement and success celebrations
 - 🏆 **Achievement System**: Gamification through milestones and streak tracking
-- 📋 **Workflow Guidance**: Structured phases for TDD, Bug Hunt, General, Rapid, and Refactor workflows
+- 📋 **Workflow Guidance**: Structured phases for TDD, Bug Hunt, General, Rapid, Refactor, Planning, Hotfix, Exploration, and Code Review workflows
 
 ## Project Structure
 
@@ -25,19 +25,40 @@ sherpa/
 │   │   ├── adaptive-learning-engine.ts # Cross-session learning and adaptation
 │   │   ├── progress-tracker.ts       # Progress monitoring and milestones
 │   │   └── celebration-generator.ts  # Dynamic encouragement system
-│   └── server-instructions/           # Template system
-│       └── templates/                # Encouragement templates
-│           └── encouragements.json   # 100+ contextual celebration messages
+│   ├── instruction-builder/           # Dynamic instruction generation
+│   │   ├── base-instructions.ts      # Enhanced MCP server instructions
+│   │   └── tool-descriptions.ts      # Tool description templates
+│   ├── server-instructions/           # Template system
+│   │   └── templates/                # Encouragement templates
+│   │       └── encouragements.json   # 100+ contextual celebration messages
+│   ├── handlers/                      # Tool request handlers
+│   │   └── guide-handler.ts          # Guide tool logic
+│   ├── state/                         # State management
+│   │   └── state-coordinator.ts      # Coordinates all state systems
+│   ├── workflow/                      # Workflow utilities
+│   │   ├── phase-completion.ts       # Phase completion detection
+│   │   ├── progress-display.ts       # Progress formatting
+│   │   ├── workflow-detector.ts      # Context-based workflow selection
+│   │   └── workflow-state-manager.ts # Workflow state persistence
+│   └── workflow-memory/               # Workflow memory system
 ├── workflows/                          # Default workflow templates
 │   ├── tdd.yaml                       # Test-driven development
 │   ├── bug-hunt.yaml                  # Systematic debugging
 │   ├── general.yaml                   # Balanced development
 │   ├── rapid.yaml                     # Quick prototyping
 │   ├── refactor.yaml                  # Safe code improvement
+│   ├── planning.yaml                  # Architecture and design
+│   ├── hotfix.yaml                    # Emergency bug fixes
+│   ├── exploration.yaml               # Exploratory development
+│   ├── code-review.yaml               # Code review workflow
 │   └── examples/                      # Additional specialized workflows
-├── test/                              # Test suite
+├── test/                              # Test suite (220+ passing tests)
 │   ├── server.test.ts                # Server functionality tests
-│   └── setup.test.ts                 # Setup script tests
+│   ├── setup.test.ts                 # Setup script tests
+│   ├── behavioral-integration.test.ts # Behavioral system integration
+│   ├── adaptive-learning-engine.test.ts # Learning engine tests
+│   ├── state-coordinator.test.ts     # State management tests
+│   └── ...                           # Additional test suites
 └── README.md                          # User documentation
 ```
 
@@ -51,7 +72,11 @@ When installed, Sherpa creates:
 │   ├── bug-hunt.yaml
 │   ├── general.yaml
 │   ├── rapid.yaml
-│   └── refactor.yaml
+│   ├── refactor.yaml
+│   ├── planning.yaml
+│   ├── hotfix.yaml
+│   ├── exploration.yaml
+│   └── code-review.yaml
 └── logs/               # Server logs with automatic rotation
     └── sherpa-YYYY-MM-DD.log
 ```
@@ -147,7 +172,7 @@ The server should be configured in Claude Desktop as:
 - First Workflow Mastery (complete first workflow)
 - Workflow Veteran (complete 5 workflows)
 - Workflow Discipline (7-day usage streak)
-- Multi-Workflow Mastery (use all 5 workflow types)
+- Multi-Workflow Mastery (use all 9 workflow types)
 - Quick Learner (3 workflows in first day)
 - Efficiency Master (faster than average completion)
 
@@ -166,19 +191,18 @@ The server should be configured in Claude Desktop as:
 - Milestone achievements with special recognition
 - Workflow-specific metaphors (TDD = lab work, Bug Hunt = detective work)
 
-#### InstructionBuilder (`src/server-instructions/instruction-builder.ts`)
-**Dynamic server instruction generation (future MCP enhancement)**
+#### InstructionBuilder (`src/instruction-builder/`)
+**Dynamic server instruction generation**
 
-- **buildInstructions()**: Generates context-aware server instructions
-- **applyTemplateSubstitutions()**: Handlebars-style template processing
-- **getWorkflowSpecificInstructions()**: Loads workflow-specific guidance
-- **addContextualEncouragements()**: Injects behavioral encouragement
+**base-instructions.ts:**
+- **getBaseInstructions()**: Generates enhanced MCP server instructions with behavioral adoption content
+- Template-based instruction generation with workflow guidance
+- Integrates behavioral psychology principles into server instructions
 
-**Template System:**
-- Base instructions with dynamic content placeholders
-- Workflow-specific instruction templates
-- 100+ contextual encouragement messages in JSON
-- Handlebars-style substitution for current state
+**tool-descriptions.ts:**
+- **getToolDescription()**: Returns tool-specific descriptions for MCP tool listing
+- Provides rich, encouraging descriptions for `guide` and `approach` tools
+- Maintains consistent tone with behavioral adoption methodology
 
 ### Setup Script (`setup.ts`)
 **Enhanced with behavioral adoption support**
@@ -218,7 +242,7 @@ When modifying the server:
 2. Run `bun run setup` to test setup script
 3. Check logs with `bun run logs:latest`
 4. Verify workflows load correctly
-5. Test all tools (`guide`, `approach`, and `flow`) work
+5. Test all tools (`guide` and `approach`) work
 
 ## Dependencies
 

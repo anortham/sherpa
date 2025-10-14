@@ -67,11 +67,17 @@ sherpa/
 │   │   ├── adaptive-learning-engine.ts
 │   │   ├── progress-tracker.ts
 │   │   └── celebration-generator.ts
-│   └── server-instructions/   # Dynamic instruction system
-│       ├── instruction-builder.ts
-│       └── templates/
-├── workflows/                 # Default YAML workflow templates
-├── test/                     # Comprehensive test suite
+│   ├── instruction-builder/   # Dynamic instruction generation
+│   │   ├── base-instructions.ts
+│   │   └── tool-descriptions.ts
+│   ├── server-instructions/   # Template system
+│   │   └── templates/
+│   ├── handlers/              # Tool request handlers
+│   ├── state/                 # State management
+│   ├── workflow/              # Workflow utilities
+│   └── workflow-memory/       # Workflow memory system
+├── workflows/                 # Default YAML workflow templates (9 workflows)
+├── test/                     # Comprehensive test suite (220+ tests)
 └── docs/                     # Documentation
 ```
 
@@ -79,10 +85,10 @@ sherpa/
 
 Sherpa follows **Test-Driven Development** (practicing what we preach!):
 
-- **201 tests** with **789 expect() calls**
+- **220+ tests** passing
 - **100% passing rate** maintained
 - **Edge cases covered**: File system errors, corrupted data, race conditions
-- **Behavioral scenarios**: User adoption patterns, celebration filtering
+- **Behavioral scenarios**: User adoption patterns, celebration generation, state management
 
 ### Running Tests
 
@@ -109,7 +115,7 @@ bun test --watch
 - **Celebration content** should feel earned, not automatic
 - **Error handling** should always provide graceful fallbacks
 - **User preferences** should persist cross-session
-- **Flow mode** should enhance, never interrupt
+- **Guidance** should enhance development, never interrupt
 
 ### Commit Messages
 Follow conventional commits:
@@ -178,11 +184,11 @@ test: add race condition scenarios
 
 ## 🚫 What We Don't Want
 
-- **Tool proliferation**: Keep the 3-tool design (guide, approach, flow)
+- **Tool proliferation**: Keep the 2-tool design (guide, approach)
 - **Rigid enforcement**: Never force workflows, only suggest
 - **Complex setup**: Installation should be simple and reliable
 - **Breaking changes**: Maintain backward compatibility
-- **Intrusive behavior**: Respect user flow state
+- **Intrusive behavior**: Respect user concentration and flow
 
 ## 🏆 Recognition
 
