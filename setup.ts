@@ -68,7 +68,7 @@ async function verifyInstallation(): Promise<boolean> {
     }
 
     // Try to start the server briefly to check it works
-    const serverPath = path.join(__dirname, "sherpa-server.ts");
+    const serverPath = path.join(MODULE_DIR, "sherpa-server.ts");
     const serverExists = await fileExists(serverPath);
 
     return serverExists;

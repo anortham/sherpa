@@ -219,7 +219,8 @@ export class AdaptiveLearningEngine {
     return {
       defaultWorkflow: typeof preferences.defaultWorkflow === 'string' ? preferences.defaultWorkflow : defaults.defaultWorkflow,
       celebrationLevel: typeof preferences.celebrationLevel === 'string' ? preferences.celebrationLevel : defaults.celebrationLevel,
-      predictiveHintsEnabled: typeof preferences.predictiveHintsEnabled === 'boolean' ? preferences.predictiveHintsEnabled : defaults.predictiveHintsEnabled
+      predictiveHintsEnabled: typeof preferences.predictiveHintsEnabled === 'boolean' ? preferences.predictiveHintsEnabled : defaults.predictiveHintsEnabled,
+      learningEnabled: typeof preferences.learningEnabled === 'boolean' ? preferences.learningEnabled : defaults.learningEnabled
     };
   }
 

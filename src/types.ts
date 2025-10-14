@@ -122,6 +122,7 @@ export interface LearningSession {
     stepsCompleted: number;
     timeToCompletion: number;
     errorRate: number;
+    flowStateTime: number;
   };
 }
 

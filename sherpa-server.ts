@@ -112,9 +112,6 @@ export class SherpaServer {
     );
 
     this.setupHandlers();
-    this.validateStartup();
-    this.loadWorkflows();
-    this.initializeWorkflowState();
   }
 
   private async validateStartup(): Promise<void> {
@@ -1010,6 +1007,11 @@ export class SherpaServer {
   async start() {
     await this.ensureLogsDir();
     await this.rotateOldLogs();
+
+    await this.validateStartup();
+    await this.loadWorkflows();
+    await this.initializeWorkflowState();
+
     this.log("INFO", "Sherpa MCP Server starting up");
 
     const transport = new StdioServerTransport();
