@@ -41,19 +41,25 @@ curl -fsSL https://bun.sh/install | bash
 bun install
 ```
 
-### 2. Initialize Sherpa
+### 2. Initialize Sherpa (Required - One Time Setup)
 
-Run the setup script to create your global Sherpa configuration:
+**Before first use**, run the setup script to install workflows:
 
 ```bash
 bun run setup
 ```
 
-This creates `~/.sherpa/` with default workflows and logging directory. The workflows are copied to your home directory so you can customize them freely.
+This creates `~/.sherpa/` with:
+- 9 default workflow files (tdd.yaml, bug-hunt.yaml, etc.)
+- Logging directory for tracking progress
 
-### 3. Configure Claude Desktop
+**You must run this before configuring Claude.** The workflows are copied to your home directory so you can customize them freely without affecting the source.
 
-Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on Mac):
+### 3. Configure Claude
+
+**For Claude Code (CLI):**
+
+Add to `~/.claude/config.json`:
 
 ```json
 {
@@ -66,7 +72,22 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-**Important:** Use the absolute path to `sherpa-server.ts` in this repository.
+**For Claude Desktop:**
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "sherpa": {
+      "command": "bun",
+      "args": ["run", "/absolute/path/to/sherpa-server.ts"]
+    }
+  }
+}
+```
+
+**Important:** Use the absolute path to `sherpa-server.ts` in this repository (e.g., `/Users/yourname/projects/sherpa/sherpa-server.ts`).
 
 ### 4. Start Coding!
 
