@@ -46,7 +46,10 @@ export class GuideHandler {
         content: [
           {
             type: "text",
-            text: "🏔️ No workflow loaded! Use the 'workflow' tool to choose your development adventure and unlock systematic excellence."
+            text: "❌ error | No workflow loaded\n\n" + JSON.stringify({
+              error: "No workflow loaded",
+              action: "Use 'approach set <workflow>' to choose a workflow"
+            }, null, 2)
           }
         ]
       };
@@ -107,16 +110,23 @@ export class GuideHandler {
           advancementMessage += `\n\n${phaseEntryCelebration}`;
         }
 
+        const summary = `🔄 advance | ${workflow.name} | ${newPhase.name} (${this.deps.getCurrentPhase() + 1}/${workflow.phases.length})`;
         return {
           content: [
             {
               type: "text",
-              text: `${advancementMessage}\n\n` +
-                    `**${newPhase.name}** (${this.deps.getCurrentPhase() + 1}/${workflow.phases.length})\n` +
-                    `${newPhase.guidance}\n\n` +
-                    `**Next steps:**\n` +
-                    newPhase.suggestions.slice(0, 3).map((s: string) => `• ${s}`).join('\n') +
-                    `\n\n🎯 **Next Action**: Work on these steps, then use \`guide done "description"\` to track progress.`
+              text: `${summary}\n\n` + JSON.stringify({
+                action: "advance",
+                previousPhase: previousPhase.name,
+                currentPhase: {
+                  name: newPhase.name,
+                  guidance: newPhase.guidance,
+                  number: this.deps.getCurrentPhase() + 1,
+                  total: workflow.phases.length
+                },
+                nextSteps: newPhase.suggestions.slice(0, 3),
+                celebration: phaseEntryCelebration || advancementMessage
+              }, null, 2)
             }
           ]
         };
@@ -125,7 +135,16 @@ export class GuideHandler {
           content: [
             {
               type: "text",
-              text: "🎯 You're already in the final phase! Complete the remaining steps or start a new workflow with `approach set <workflow>`."
+              text: "⚠️ advance | Already in final phase\n\n" + JSON.stringify({
+                action: "advance",
+                error: "Already in final phase",
+                currentPhase: {
+                  name: workflow.phases[this.deps.getCurrentPhase()].name,
+                  number: this.deps.getCurrentPhase() + 1,
+                  total: workflow.phases.length
+                },
+                suggestion: "Complete remaining steps or start new workflow with 'approach set <workflow>'"
+              }, null, 2)
             }
           ]
         };
@@ -309,72 +328,72 @@ export class GuideHandler {
       this.deps.setCurrentPhase(0);
     }
 
-    // Convert to natural language format
-    let naturalResponse = "";
+    // Build concise human-readable summary
+    const actionEmoji = action === "done" ? "✅" : action === "check" ? "🔍" : "🎯";
+    const completedSteps = actualProgress.completed ?? 0;
+    const total = actualProgress.total ?? 0;
+    const progressPercent = total > 0 ? Math.round((completedSteps / total) * 100) : 0;
+    const summary = `${actionEmoji} ${action} | ${workflow.name} | ${currentPhase.name} (${this.deps.getCurrentPhase() + 1}/${workflow.phases.length}) | ${completedSteps}/${total} steps (${progressPercent}%)`;
 
-    // Add workflow suggestion if present
-    if (workflowSuggestion) {
-      naturalResponse += `${workflowSuggestion}\n\n`;
-    }
-
-    // Add adaptive hint if present
-    if (adaptiveHint) {
-      const hintContent = this.deps.formatAdaptiveHint(adaptiveHint);
-      if (hintContent) {
-        naturalResponse += `${hintContent}\n\n`;
+    // Build structured data for agent consumption
+    const structuredData: any = {
+      action,
+      workflow: {
+        name: workflow.name,
+        key: this.deps.getCurrentWorkflow(),
+        description: workflow.description
+      },
+      phase: {
+        name: currentPhase.name,
+        guidance: currentPhase.guidance,
+        number: this.deps.getCurrentPhase() + 1,
+        total: workflow.phases.length
+      },
+      progress: {
+        completed: completedSteps,
+        total,
+        percentage: progressPercent,
+        remaining: total - completedSteps
+      },
+      nextSteps: response.suggestions || [],
+      flags: {
+        isPhaseComplete,
+        isWorkflowComplete
       }
-    }
+    };
 
-    // Add celebration if present
+    // Add optional fields only if they exist
     if (response.celebration) {
-      naturalResponse += `${response.celebration}\n\n`;
+      structuredData.celebration = response.celebration;
     }
-
-    // Add main guidance
-    naturalResponse += `**${response.phase}** (${response.phase_number})\n`;
-    naturalResponse += `${response.guidance}\n\n`;
-
-    // Add next steps
-    if (response.suggestions && response.suggestions.length > 0) {
-      naturalResponse += "**Next steps:**\n";
-      response.suggestions.forEach((suggestion: string) => {
-        naturalResponse += `• ${suggestion}\n`;
-      });
-      naturalResponse += "\n";
+    if (adaptiveHint) {
+      structuredData.adaptiveHint = {
+        type: adaptiveHint.type,
+        content: adaptiveHint.content,
+        confidence: adaptiveHint.confidence
+      };
     }
-
-    // Add progress encouragement if present
+    if (workflowSuggestion) {
+      structuredData.workflowSuggestion = workflowSuggestion;
+    }
     if (response.progress_encouragement) {
-      naturalResponse += `${response.progress_encouragement}\n\n`;
+      structuredData.encouragement = response.progress_encouragement;
     }
-
-    // Add workflow completion if present
     if (response.workflow_completion) {
-      naturalResponse += `${response.workflow_completion}\n\n`;
+      structuredData.workflowCompletion = response.workflow_completion;
     }
-
-    // Add success story occasionally
     if (response.success_inspiration) {
-      naturalResponse += `💡 **Inspiration**: ${response.success_inspiration}\n\n`;
+      structuredData.inspiration = response.success_inspiration;
     }
-
-    // Add progress summary with better context
-    const progressSummary = this.deps.generateProgressSummary(response.progress, isPhaseComplete, action === "done");
-    naturalResponse += `${progressSummary}\n\n`;
-
-    // Add explicit next action hint
-    if (response.suggestions && response.suggestions.length > 0) {
-      naturalResponse += `🎯 **Next Action**: Work on the suggested steps above, then call \`guide done "brief description of what you completed"\` to mark progress and get your next step.\n\n`;
+    if (newMilestones.length > 0) {
+      structuredData.milestones = newMilestones;
     }
-
-    // Add tool usage reminder
-    naturalResponse += `💡 **Remember**: Use \`guide check\` anytime you need your next step, or \`guide next\` when switching contexts.`;
 
     return {
       content: [
         {
           type: "text",
-          text: naturalResponse.trim()
+          text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
         }
       ]
     };

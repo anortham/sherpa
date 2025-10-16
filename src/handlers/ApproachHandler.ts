@@ -48,75 +48,63 @@ export class ApproachHandler {
       const progressStats = this.deps.progressTracker.getProgressStats();
       const personalizedTips = this.deps.progressTracker.getPersonalizedTips();
 
-      // Convert to natural language format
-      let approachResponse = "";
+      // Build concise summary
+      const summary = `📋 list | ${workflowList.length} workflows available | current: ${this.deps.getCurrentWorkflow()}`;
 
-      // Add motivation
+      // Build structured data
+      const structuredData: any = {
+        action: "list",
+        currentWorkflow: this.deps.getCurrentWorkflow(),
+        workflows: workflowList.map(wf => ({
+          key: wf.key,
+          name: wf.name,
+          description: wf.description,
+          phases: wf.phases,
+          triggerHints: wf.trigger_hints
+        })),
+        stats: {
+          workflowsCompleted: progressStats.totalWorkflowsCompleted,
+          stepsCompleted: progressStats.totalStepsCompleted
+        }
+      };
+
+      // Add optional fields
       if (selectionMotivation) {
-        approachResponse += `${selectionMotivation}\n\n`;
+        structuredData.motivation = selectionMotivation;
       }
-
-      // Add current workflow
-      approachResponse += `**Current approach**: ${this.deps.getCurrentWorkflow()}\n\n`;
-
-      // Add available workflows
-      approachResponse += "**Available approaches:**\n";
-      workflowList.forEach(workflow => {
-        const hints = workflow.trigger_hints.length > 0 ? ` (${workflow.trigger_hints.join(", ")})` : "";
-        approachResponse += `• **${workflow.key}**: ${workflow.description}${hints}\n`;
-      });
-      approachResponse += "\n";
-
-      // Add progress stats
-      if (progressStats.totalWorkflowsCompleted > 0) {
-        approachResponse += `**Your progress**: ${progressStats.totalWorkflowsCompleted} workflows completed, ${progressStats.totalStepsCompleted} steps total\n\n`;
-      }
-
-      // Add personalized tips if available
       if (personalizedTips && personalizedTips.length > 0) {
-        approachResponse += "**Personalized suggestions:**\n";
-        personalizedTips.forEach((tip: string) => {
-          approachResponse += `• ${tip}\n`;
-        });
-        approachResponse += "\n";
+        structuredData.tips = personalizedTips;
       }
 
-      // Add adaptive learning insights
       const learningInsights = this.deps.learningEngine.getPersonalizedSuggestions();
       if (learningInsights.length > 0) {
-        approachResponse += "**Smart insights from your patterns:**\n";
-        learningInsights.forEach(insight => {
-          approachResponse += `• ${insight}\n`;
-        });
-        approachResponse += "\n";
+        structuredData.insights = learningInsights;
       }
-
-      // Add explicit next action guidance
-      approachResponse += `🎯 **Next Action**: Choose a workflow with \`approach set <name>\` (e.g., \`approach set tdd\`), then call \`guide check\` to get your first step.\n\n`;
-      approachResponse += `💡 **Remember**: Each workflow is optimized for specific goals - pick the one that matches your current task!`;
 
       return {
         content: [
           {
             type: "text",
-            text: approachResponse.trim()
+            text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
           }
         ]
       };
     }
 
     if (!this.deps.workflows.has(set)) {
-      // Enhanced error with helpful guidance
       const availableWorkflows = Array.from(this.deps.workflows.keys());
-      const suggestion = availableWorkflows.length > 0 ?
-        `Try one of these proven workflows: ${availableWorkflows.join(", ")}` :
-        "No workflows available. Please check your ~/.sherpa/workflows/ directory.";
+      const summary = `❌ set | Workflow not found: ${set}`;
 
       return {
         content: [
           {
             type: "text",
-            text: `🎯 Workflow "${set}" not found! ${suggestion}\n\nEach workflow offers unique advantages for different development scenarios. Choose wisely for maximum impact!`
+            text: `${summary}\n\n` + JSON.stringify({
+              action: "set",
+              error: "Workflow not found",
+              requested: set,
+              available: availableWorkflows
+            }, null, 2)
           }
         ]
       };
@@ -136,65 +124,49 @@ export class ApproachHandler {
 
     const workflow = this.deps.workflows.get(set)!;
 
-    // Generate workflow switch celebration
-    const switchCelebration = previousWorkflow !== set ?
-      `🔄 Excellent choice! Switching from ${previousWorkflow} to ${workflow.name} workflow.` :
-      `🎯 Continuing with ${workflow.name} workflow - great systematic approach!`;
-
-    // Generate phase entry celebration
+    // Generate contextual content
     const phaseEntryCelebration = this.deps.celebrationGenerator.generatePhaseEntryCelebration(
       this.deps.getCurrentWorkflow(),
       workflow.phases[0].name
     );
-
-    // Get workflow-specific success story
     const successStory = this.deps.celebrationGenerator.generateSuccessStory(this.deps.getCurrentWorkflow());
 
-    // Add tool usage encouragement
-    const toolEncouragement = this.deps.celebrationGenerator.generateToolUsageEncouragement("workflow");
+    // Build concise summary
+    const isSwitch = previousWorkflow !== set;
+    const summary = isSwitch
+      ? `🔄 set | ${previousWorkflow} → ${set} | Starting ${workflow.phases[0].name}`
+      : `🎯 set | ${set} | Restarting ${workflow.phases[0].name}`;
 
-    // Convert to natural language format
-    let switchResponse = "";
+    // Build structured data
+    const structuredData: any = {
+      action: "set",
+      previousWorkflow,
+      currentWorkflow: {
+        key: set,
+        name: workflow.name,
+        description: workflow.description,
+        totalPhases: workflow.phases.length
+      },
+      firstPhase: {
+        name: workflow.phases[0].name,
+        guidance: workflow.phases[0].guidance,
+        firstSteps: workflow.phases[0].suggestions.slice(0, 3)
+      }
+    };
 
-    // Add switch celebration
-    switchResponse += `${switchCelebration}\n\n`;
-
-    // Add phase entry celebration
+    // Add optional fields
     if (phaseEntryCelebration) {
-      switchResponse += `${phaseEntryCelebration}\n\n`;
+      structuredData.celebration = phaseEntryCelebration;
     }
-
-    // Add workflow details
-    switchResponse += `**${workflow.name}**\n`;
-    switchResponse += `${workflow.description}\n\n`;
-
-    // Add first phase info
-    switchResponse += `**Starting with**: ${workflow.phases[0].name}\n`;
-    switchResponse += `${workflow.phases[0].guidance}\n\n`;
-
-    // Add first few suggestions
-    if (workflow.phases[0].suggestions.length > 0) {
-      switchResponse += "**First steps:**\n";
-      workflow.phases[0].suggestions.slice(0, 3).forEach((suggestion: string) => {
-        switchResponse += `• ${suggestion}\n`;
-      });
-      switchResponse += "\n";
-    }
-
-    // Add success inspiration if available
     if (successStory) {
-      switchResponse += `💡 **Inspiration**: ${successStory}\n\n`;
+      structuredData.inspiration = successStory;
     }
-
-    // Add explicit next action guidance
-    switchResponse += `🎯 **Next Action**: Call \`guide check\` to get your specific next step and start building momentum!\n\n`;
-    switchResponse += `💡 **Remember**: Work through the steps, then use \`guide done "description"\` after each completion to track progress and get encouragement.`;
 
     return {
       content: [
         {
           type: "text",
-          text: switchResponse.trim()
+          text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
         }
       ]
     };

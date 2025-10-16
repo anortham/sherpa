@@ -12,6 +12,16 @@ import { ProgressTracker } from "../src/behavioral-adoption/progress-tracker";
 const TEST_SHERPA_HOME = path.join(os.tmpdir(), "sherpa-approach-handler-test");
 const TEST_WORKFLOWS_DIR = path.join(TEST_SHERPA_HOME, "workflows");
 
+// Helper function to parse structured response
+function parseResponse(result: any): { summary: string; data: any } {
+  const text = result.content[0].text;
+  const parts = text.split("\n\n");
+  const summary = parts[0];
+  const jsonStr = parts.slice(1).join("\n\n");
+  const data = JSON.parse(jsonStr);
+  return { summary, data };
+}
+
 describe("ApproachHandler", () => {
   let mockWorkflows: Map<string, any>;
   let mockLearningEngine: AdaptiveLearningEngine;
@@ -135,55 +145,59 @@ describe("ApproachHandler", () => {
   describe("Workflow Listing (set='list')", () => {
     test("should list all available workflows with descriptions and hints", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { summary, data } = parseResponse(result);
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe("text");
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Available approaches:**");
-      expect(text).toContain("**tdd**: Build reliable software through testing first");
-      expect(text).toContain("**bug-hunt**: Systematic debugging and issue resolution");
-      expect(text).toContain("**general**: Balanced approach for general software development");
-      expect(text).toContain("(test, tdd, testing)");
-      expect(text).toContain("(bug, error, issue, broken)");
+      expect(summary).toContain("📋 list");
+      expect(data.action).toBe("list");
+      expect(data.workflows).toHaveLength(3);
+
+      const tdd = data.workflows.find((w: any) => w.key === "tdd");
+      expect(tdd.name).toBe("Test-Driven Development");
+      expect(tdd.description).toBe("Build reliable software through testing first");
+      expect(tdd.triggerHints).toContain("test");
     });
 
     test("should show current workflow", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { summary, data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Current approach**: general");
+      expect(summary).toContain("current: general");
+      expect(data.currentWorkflow).toBe("general");
     });
 
     test("should include progress stats when workflows completed", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Your progress**: 5 workflows completed, 25 steps total");
+      expect(data.stats.workflowsCompleted).toBe(5);
+      expect(data.stats.stepsCompleted).toBe(25);
     });
 
     test("should include personalized tips", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Personalized suggestions:**");
-      expect(text).toContain("Try the TDD workflow for new features");
-      expect(text).toContain("Use bug-hunt for debugging");
+      expect(data.tips).toContain("Try the TDD workflow for new features");
+      expect(data.tips).toContain("Use bug-hunt for debugging");
     });
 
     test("should include workflow selection motivation", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("🎯 Choose wisely for maximum impact!");
+      expect(data.motivation).toBe("🎯 Choose wisely for maximum impact!");
     });
 
     test("should include next action guidance", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("🎯 **Next Action**: Choose a workflow with `approach set <name>`");
-      expect(text).toContain("💡 **Remember**: Each workflow is optimized for specific goals");
+      // Structured format includes all data needed, no specific prose required
+      expect(data.workflows).toBeDefined();
+      expect(data.workflows.length).toBeGreaterThan(0);
     });
 
     test("should record tool usage for learning", async () => {
@@ -196,24 +210,28 @@ describe("ApproachHandler", () => {
   describe("Workflow Switching", () => {
     test("should switch to valid workflow successfully", async () => {
       const result = await handler.handleApproach({ set: "tdd" });
+      const { summary, data } = parseResponse(result);
 
       expect(mockDeps.setCurrentWorkflow).toHaveBeenCalledWith("tdd");
       expect(mockDeps.setCurrentPhase).toHaveBeenCalledWith(0);
       expect(mockDeps.saveWorkflowState).toHaveBeenCalled();
 
-      const text = result.content[0].text;
-      expect(text).toContain("Excellent choice! Switching from general to Test-Driven Development workflow");
-      expect(text).toContain("**Test-Driven Development**");
-      expect(text).toContain("Build reliable software through testing first");
-      expect(text).toContain("**Starting with**: 🔴 Red Phase");
+      expect(summary).toContain("🔄 set");
+      expect(summary).toContain("general → tdd");
+      expect(data.action).toBe("set");
+      expect(data.previousWorkflow).toBe("general");
+      expect(data.currentWorkflow.key).toBe("tdd");
+      expect(data.currentWorkflow.name).toBe("Test-Driven Development");
+      expect(data.firstPhase.name).toBe("🔴 Red Phase");
     });
 
     test("should handle switching to same workflow", async () => {
       const result = await handler.handleApproach({ set: "general" });
+      const { summary, data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("🎯 Continuing with General Development workflow");
-      expect(text).toContain("**General Development**");
+      expect(summary).toContain("🎯 set");
+      expect(data.previousWorkflow).toBe("general");
+      expect(data.currentWorkflow.key).toBe("general");
     });
 
     test("should clear phase progress when switching workflows", async () => {
@@ -232,52 +250,58 @@ describe("ApproachHandler", () => {
 
     test("should include first phase suggestions", async () => {
       const result = await handler.handleApproach({ set: "tdd" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**First steps:**");
-      expect(text).toContain("• Create test file");
-      expect(text).toContain("• Write simple assertion");
-      expect(text).toContain("• Run test to see failure");
+      expect(data.firstPhase.firstSteps).toContain("Create test file");
+      expect(data.firstPhase.firstSteps).toContain("Write simple assertion");
+      expect(data.firstPhase.firstSteps).toContain("Run test to see failure");
     });
 
     test("should include success story inspiration", async () => {
       const result = await handler.handleApproach({ set: "tdd" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("💡 **Inspiration**: Companies using systematic workflows ship 2x faster!");
+      expect(data.inspiration).toBe("Companies using systematic workflows ship 2x faster!");
     });
 
     test("should include next action guidance for new workflow", async () => {
       const result = await handler.handleApproach({ set: "tdd" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("🎯 **Next Action**: Call `guide check` to get your specific next step");
-      expect(text).toContain("💡 **Remember**: Work through the steps, then use `guide done \"description\"`");
+      // Structured format includes all workflow data
+      expect(data.firstPhase).toBeDefined();
+      expect(data.firstPhase.firstSteps.length).toBeGreaterThan(0);
     });
   });
 
   describe("Error Handling", () => {
     test("should handle invalid workflow name", async () => {
       const result = await handler.handleApproach({ set: "nonexistent" });
+      const { summary, data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("🎯 Workflow \"nonexistent\" not found!");
-      expect(text).toContain("Try one of these proven workflows: tdd, bug-hunt, general");
+      expect(summary).toContain("❌ set");
+      expect(data.error).toBe("Workflow not found");
+      expect(data.requested).toBe("nonexistent");
+      expect(data.available).toContain("tdd");
+      expect(data.available).toContain("bug-hunt");
+      expect(data.available).toContain("general");
     });
 
     test("should handle empty args gracefully", async () => {
       const result = await handler.handleApproach({});
+      const { data } = parseResponse(result);
 
       // Should default to "list"
-      const text = result.content[0].text;
-      expect(text).toContain("**Available approaches:**");
+      expect(data.action).toBe("list");
+      expect(data.workflows).toBeDefined();
     });
 
     test("should handle null args gracefully", async () => {
       const result = await handler.handleApproach(null);
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Available approaches:**");
+      expect(data.action).toBe("list");
+      expect(data.workflows).toBeDefined();
     });
   });
 
@@ -303,40 +327,43 @@ describe("ApproachHandler", () => {
       ]);
 
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("**Smart insights from your patterns:**");
-      expect(text).toContain("Based on your patterns, try TDD for new features");
-      expect(text).toContain("You work well with structured approaches");
+      expect(data.insights).toContain("Based on your patterns, try TDD for new features");
+      expect(data.insights).toContain("You work well with structured approaches");
     });
 
     test("should handle missing personalized suggestions gracefully", async () => {
       mockLearningEngine.getPersonalizedSuggestions = mock(() => []);
 
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).not.toContain("**Smart insights from your patterns:**");
+      expect(data.insights).toBeUndefined();
     });
   });
 
   describe("Workflow Details Display", () => {
     test("should show workflow description", async () => {
       const result = await handler.handleApproach({ set: "bug-hunt" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("Systematic debugging and issue resolution");
+      expect(data.currentWorkflow.description).toBe("Systematic debugging and issue resolution");
     });
 
 
 
     test("should show trigger hints in listing", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const { data } = parseResponse(result);
 
-      const text = result.content[0].text;
-      expect(text).toContain("(test, tdd, testing)");
-      expect(text).toContain("(bug, error, issue, broken)");
-      expect(text).toContain("(general, development)");
+      const tdd = data.workflows.find((w: any) => w.key === "tdd");
+      const bugHunt = data.workflows.find((w: any) => w.key === "bug-hunt");
+      const general = data.workflows.find((w: any) => w.key === "general");
+
+      expect(tdd.triggerHints).toContain("test");
+      expect(bugHunt.triggerHints).toContain("bug");
+      expect(general.triggerHints).toContain("general");
     });
   });
 });
