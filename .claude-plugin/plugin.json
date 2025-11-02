@@ -1,0 +1,21 @@
+{
+  "name": "sherpa-workflows",
+  "version": "1.0.0",
+  "description": "AI development workflow guidance with behavioral adoption. Provides systematic workflows (TDD, Bug Hunt, etc.) with positive reinforcement and progress tracking to build good coding habits.",
+  "author": {
+    "name": "Anthropic"
+  },
+  "homepage": "https://github.com/anthropics/sherpa-mcp",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "tdd",
+    "guidance",
+    "behavioral-adoption",
+    "development",
+    "testing",
+    "systematic"
+  ],
+  "commands": "./commands/",
+  "skills": "./skills/"
+}
