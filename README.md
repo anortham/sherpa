@@ -97,6 +97,26 @@ In Claude, the AI will now have access to two powerful tools:
 
 Your workflows are now available across all your projects! 🎉
 
+## Skills (Recommended)
+
+Sherpa includes skills that teach AI agents how to use systematic development workflows effectively:
+
+- **tdd-cycle** - Strict TDD workflow enforcement (Define Contract → Tests → Implementation → Refactor)
+- **bug-hunt** - Systematic debugging with reproduction-first approach (prevents symptom-fixing)
+- **systematic-development** - General balanced workflow (Research → Plan → Tests → Implement → Verify)
+
+**Why use skills?** Skills provide proven workflow patterns that help AI agents follow Sherpa's systematic methodology correctly. They activate automatically when relevant, ensuring `guide check` before coding and proper phase progression.
+
+### Installation
+
+```bash
+# Install skills globally (works across all projects where Sherpa is configured)
+mkdir -p ~/.claude/skills
+cp -r /path/to/sherpa/skills/* ~/.claude/skills/
+```
+
+Skills are model-invoked - Claude automatically uses them based on your requests (implementing features → tdd-cycle, fixing bugs → bug-hunt, general work → systematic-development). No explicit commands needed.
+
 ## 🎯 Behavioral Adoption Features
 
 Sherpa uses proven behavioral psychology to help AI agents develop systematic habits:
