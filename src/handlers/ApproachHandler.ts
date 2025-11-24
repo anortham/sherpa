@@ -3,6 +3,7 @@ import { AdaptiveLearningEngine } from "../behavioral-adoption/adaptive-learning
 import { CelebrationGenerator } from "../behavioral-adoption/celebration-generator";
 import { ProgressTracker } from "../behavioral-adoption/progress-tracker";
 import { WorkflowDetector } from "../workflow/workflow-detector";
+import { OutputFormat, ApproachListData, ApproachSetData, ApproachErrorData, formatApproachAsText, createResponse } from "../output/formatters";
 
 export interface ApproachHandlerDependencies {
   workflows: Map<string, Workflow>;
@@ -23,6 +24,7 @@ export class ApproachHandler {
   async handleApproach(args: any) {
     const safeArgs = args ?? {};
     const set = safeArgs.set ?? "list";
+    const outputFormat: OutputFormat = safeArgs.output_format ?? "text";
 
     // Record tool usage for learning
     this.deps.learningEngine.recordToolUsage("approach", safeArgs);
@@ -52,7 +54,7 @@ export class ApproachHandler {
       const summary = `📋 list | ${workflowList.length} workflows available | current: ${this.deps.getCurrentWorkflow()}`;
 
       // Build structured data
-      const structuredData: any = {
+      const structuredData: ApproachListData = {
         action: "list",
         currentWorkflow: this.deps.getCurrentWorkflow(),
         workflows: workflowList.map(wf => ({
@@ -81,33 +83,21 @@ export class ApproachHandler {
         structuredData.insights = learningInsights;
       }
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
-          }
-        ]
-      };
+      return createResponse(summary, structuredData, outputFormat, formatApproachAsText);
     }
 
     if (!this.deps.workflows.has(set)) {
       const availableWorkflows = Array.from(this.deps.workflows.keys());
       const summary = `❌ set | Workflow not found: ${set}`;
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `${summary}\n\n` + JSON.stringify({
-              action: "set",
-              error: "Workflow not found",
-              requested: set,
-              available: availableWorkflows
-            }, null, 2)
-          }
-        ]
+      const errorData: ApproachErrorData = {
+        action: "set",
+        error: "Workflow not found",
+        requested: set,
+        available: availableWorkflows
       };
+
+      return createResponse(summary, errorData, outputFormat, formatApproachAsText);
     }
 
     // Switch workflow with celebration
@@ -138,7 +128,7 @@ export class ApproachHandler {
       : `🎯 set | ${set} | Restarting ${workflow.phases[0].name}`;
 
     // Build structured data
-    const structuredData: any = {
+    const structuredData: ApproachSetData = {
       action: "set",
       previousWorkflow,
       currentWorkflow: {
@@ -162,13 +152,6 @@ export class ApproachHandler {
       structuredData.inspiration = successStory;
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
-        }
-      ]
-    };
+    return createResponse(summary, structuredData, outputFormat, formatApproachAsText);
   }
 }

@@ -12,7 +12,7 @@ import { ProgressTracker } from "../src/behavioral-adoption/progress-tracker";
 const TEST_SHERPA_HOME = path.join(os.tmpdir(), "sherpa-guide-handler-test");
 const TEST_WORKFLOWS_DIR = path.join(TEST_SHERPA_HOME, "workflows");
 
-// Helper function to parse structured response
+// Helper function to parse structured response (for JSON output format)
 function parseResponse(result: any): { summary: string; data: any } {
   const text = result.content[0].text;
   const parts = text.split("\n\n");
@@ -20,6 +20,11 @@ function parseResponse(result: any): { summary: string; data: any } {
   const jsonStr = parts.slice(1).join("\n\n");
   const data = JSON.parse(jsonStr);
   return { summary, data };
+}
+
+// Helper function to get raw text response (for text output format)
+function getTextResponse(result: any): string {
+  return result.content[0].text;
 }
 
 describe("GuideHandler", () => {
@@ -172,18 +177,39 @@ describe("GuideHandler", () => {
     test("should handle no workflow loaded", async () => {
       mockDeps.workflows = new Map();
 
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(summary).toContain("❌ error");
       expect(data.error).toBe("No workflow loaded");
-      expect(data.action).toBe("Use 'approach set <workflow>' to choose a workflow");
+      expect(data.suggestion).toBe("Use 'approach set <workflow>' to choose a workflow");
+    });
+
+    test("should return lean text error by default", async () => {
+      mockDeps.workflows = new Map();
+
+      const result = await handler.handleGuide({ action: "check" });
+      const text = getTextResponse(result);
+
+      expect(text).toContain("error: No workflow loaded");
+      expect(text).toContain("Use 'approach set <workflow>'");
     });
   });
 
   describe("Action: check", () => {
-    test("should return current phase guidance and suggestions", async () => {
+    test("should return lean text output by default", async () => {
       const result = await handler.handleGuide({ action: "check" });
+      const text = getTextResponse(result);
+
+      // Lean text format should contain key info
+      expect(text).toContain("tdd");
+      expect(text).toContain("🔴 Red Phase");
+      expect(text).toContain("Write a failing test");
+      expect(text).toContain("Next:");
+    });
+
+    test("should return current phase guidance and suggestions in JSON format", async () => {
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(summary).toContain("🔍 check");
@@ -199,7 +225,7 @@ describe("GuideHandler", () => {
     });
 
     test("should include progress summary", async () => {
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.progress).toBeDefined();
@@ -208,7 +234,7 @@ describe("GuideHandler", () => {
     });
 
     test("should include next action guidance", async () => {
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       // Structured format doesn't include prose, but has all the data needed
@@ -234,7 +260,7 @@ describe("GuideHandler", () => {
       }));
       mockDeps.formatAdaptiveHint = mock(() => "💡 **Hint**: Try writing a simpler test first");
 
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.adaptiveHint).toBeDefined();
@@ -246,7 +272,7 @@ describe("GuideHandler", () => {
     test("should include workflow suggestions when context provided", async () => {
       mockDeps.generateWorkflowSuggestion = mock(() => "💡 I detected you're building a new feature. Consider switching to TDD workflow for optimal results.");
 
-      const result = await handler.handleGuide({ action: "check", context: "building new authentication feature" });
+      const result = await handler.handleGuide({ action: "check", context: "building new authentication feature", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.workflowSuggestion).toBeDefined();
@@ -256,7 +282,7 @@ describe("GuideHandler", () => {
 
   describe("Action: done", () => {
     test("should record progress and generate celebration", async () => {
-      const result = await handler.handleGuide({ action: "done", completed: "wrote first test" });
+      const result = await handler.handleGuide({ action: "done", completed: "wrote first test", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(mockDeps.recordProgress).toHaveBeenCalledWith("wrote first test");
@@ -274,7 +300,7 @@ describe("GuideHandler", () => {
     test("should handle phase completion logic", async () => {
       // Test that the phase completion detection is called
       // The actual advancement depends on complex conditions
-      const result = await handler.handleGuide({ action: "done", completed: "completed all red phase steps" });
+      const result = await handler.handleGuide({ action: "done", completed: "completed all red phase steps", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.celebration).toBeDefined();
@@ -283,7 +309,7 @@ describe("GuideHandler", () => {
     test("should handle workflow completion in final phase", async () => {
       mockDeps.getCurrentPhase = mock(() => 1); // Already in final phase
 
-      const result = await handler.handleGuide({ action: "done", completed: "finished implementation" });
+      const result = await handler.handleGuide({ action: "done", completed: "finished implementation", output_format: "json" });
       const { data } = parseResponse(result);
 
       // Workflow completion logic is complex and depends on phase completion detection
@@ -293,7 +319,7 @@ describe("GuideHandler", () => {
 
   describe("Action: advance", () => {
     test("should manually advance to next phase", async () => {
-      const result = await handler.handleGuide({ action: "advance" });
+      const result = await handler.handleGuide({ action: "advance", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(mockDeps.setCurrentPhase).toHaveBeenCalledWith(1);
@@ -304,10 +330,19 @@ describe("GuideHandler", () => {
       expect(data.currentPhase.number).toBe(2);
     });
 
+    test("should return lean text for advance by default", async () => {
+      const result = await handler.handleGuide({ action: "advance" });
+      const text = getTextResponse(result);
+
+      expect(text).toContain("Advanced:");
+      expect(text).toContain("🔴 Red Phase");
+      expect(text).toContain("🟢 Green Phase");
+    });
+
     test("should prevent advancing beyond final phase", async () => {
       mockDeps.getCurrentPhase = mock(() => 1); // Already in final phase
 
-      const result = await handler.handleGuide({ action: "advance" });
+      const result = await handler.handleGuide({ action: "advance", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(mockDeps.setCurrentPhase).not.toHaveBeenCalled();
@@ -376,7 +411,7 @@ describe("GuideHandler", () => {
     });
 
     test("should integrate with progress tracker for encouragement", async () => {
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(mockProgressTracker.recordProgressCheck).toHaveBeenCalled();
@@ -389,7 +424,7 @@ describe("GuideHandler", () => {
       const originalRandom = Math.random;
       Math.random = mock(() => 0.2);
 
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.inspiration).toBe("Companies using systematic workflows ship 2x faster!");
@@ -402,7 +437,7 @@ describe("GuideHandler", () => {
     test("should use ProgressDisplay for accurate progress calculation", async () => {
       // This test verifies that the handler integrates with ProgressDisplay utilities
       // The actual calculation logic is tested separately in progress-display.test.ts
-      const result = await handler.handleGuide({ action: "check" });
+      const result = await handler.handleGuide({ action: "check", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.progress).toBeDefined();

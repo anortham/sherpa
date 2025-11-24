@@ -366,6 +366,11 @@ export class SherpaServer {
               context: {
                 type: "string",
                 description: "Optional: describe what you're working on for smart workflow suggestions (e.g., 'fixing login bug', 'building new parser', 'quick demo prototype')"
+              },
+              output_format: {
+                type: "string",
+                enum: ["text", "json"],
+                description: "Output format: 'text' (default) for lean AI-optimized output, 'json' for structured data"
               }
             },
             required: ["action"]
@@ -381,6 +386,11 @@ export class SherpaServer {
                 type: "string",
                 description: "Workflow name to switch to, or 'list' to see all options. Available: " +
                   Array.from(this.workflows.keys()).join(", ")
+              },
+              output_format: {
+                type: "string",
+                enum: ["text", "json"],
+                description: "Output format: 'text' (default) for lean AI-optimized output, 'json' for structured data"
               }
             },
             required: ["set"]

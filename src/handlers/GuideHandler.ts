@@ -5,6 +5,7 @@ import { ProgressTracker } from "../behavioral-adoption/progress-tracker";
 import { PhaseCompletionDetector } from "../workflow/phase-completion";
 import { ProgressDisplay } from "../workflow/progress-display";
 import { WorkflowDetector } from "../workflow/workflow-detector";
+import { OutputFormat, GuideResponseData, formatGuideAsText, createResponse } from "../output/formatters";
 
 export interface GuideHandlerDependencies {
   workflows: Map<string, Workflow>;
@@ -35,6 +36,7 @@ export class GuideHandler {
     const action = safeArgs.action ?? "check";
     const completed = safeArgs.completed;
     const context = safeArgs.context;
+    const outputFormat: OutputFormat = safeArgs.output_format ?? "text";
 
     // Record tool usage for learning
     this.deps.learningEngine.recordToolUsage("guide", safeArgs);
@@ -42,17 +44,17 @@ export class GuideHandler {
     // Get workflow early so advance action can use it
     const workflow = this.deps.workflows.get(this.deps.getCurrentWorkflow());
     if (!workflow) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "❌ error | No workflow loaded\n\n" + JSON.stringify({
-              error: "No workflow loaded",
-              action: "Use 'approach set <workflow>' to choose a workflow"
-            }, null, 2)
-          }
-        ]
+      const errorData: GuideResponseData = {
+        action,
+        error: "No workflow loaded",
+        suggestion: "Use 'approach set <workflow>' to choose a workflow",
+        workflow: { name: "", key: "" },
+        phase: { name: "", guidance: "", number: 0, total: 0 },
+        progress: { completed: 0, total: 0, percentage: 0, remaining: 0 },
+        nextSteps: [],
+        flags: { isPhaseComplete: false, isWorkflowComplete: false }
       };
+      return createResponse("❌ error | No workflow loaded", errorData, outputFormat, formatGuideAsText);
     }
 
     // Handle quick shortcuts
@@ -62,7 +64,7 @@ export class GuideHandler {
       this.deps.phaseProgress.clear();
       this.deps.learningEngine.recordWorkflowUsage("tdd", context);
       await this.deps.saveWorkflowState();
-      return await this.handleGuide({ action: "check" });
+      return await this.handleGuide({ action: "check", output_format: outputFormat });
     }
 
     if (action === "bug") {
@@ -71,7 +73,7 @@ export class GuideHandler {
       this.deps.phaseProgress.clear();
       this.deps.learningEngine.recordWorkflowUsage("bug-hunt", context);
       await this.deps.saveWorkflowState();
-      return await this.handleGuide({ action: "check" });
+      return await this.handleGuide({ action: "check", output_format: outputFormat });
     }
 
     if (action === "next") {
@@ -86,7 +88,7 @@ export class GuideHandler {
           await this.deps.saveWorkflowState();
         }
       }
-      return await this.handleGuide({ action: "check" });
+      return await this.handleGuide({ action: "check", output_format: outputFormat });
     }
 
     if (action === "advance") {
@@ -99,55 +101,45 @@ export class GuideHandler {
         // Record manual advancement for learning
         this.deps.learningEngine.recordToolUsage("guide-advance", { from: previousPhase.name, to: newPhase.name });
 
-        // Generate phase transition celebration
-        const phaseAdvancementCelebration = `🔄 **Advanced from ${previousPhase.name} to ${newPhase.name}**\n\nSometimes you need to move forward manually - that's perfectly fine! Let's focus on the next phase.`;
-
         // Generate phase entry celebration for new phase
         const phaseEntryCelebration = this.deps.celebrationGenerator.generatePhaseEntryCelebration(this.deps.getCurrentWorkflow(), newPhase.name);
 
-        let advancementMessage = phaseAdvancementCelebration;
-        if (phaseEntryCelebration) {
-          advancementMessage += `\n\n${phaseEntryCelebration}`;
-        }
+        const advanceData: GuideResponseData = {
+          action: "advance",
+          previousPhase: previousPhase.name,
+          currentPhase: {
+            name: newPhase.name,
+            guidance: newPhase.guidance,
+            number: this.deps.getCurrentPhase() + 1,
+            total: workflow.phases.length
+          },
+          workflow: { name: workflow.name, key: this.deps.getCurrentWorkflow() },
+          phase: { name: newPhase.name, guidance: newPhase.guidance, number: this.deps.getCurrentPhase() + 1, total: workflow.phases.length },
+          progress: { completed: 0, total: newPhase.suggestions.length, percentage: 0, remaining: newPhase.suggestions.length },
+          nextSteps: newPhase.suggestions.slice(0, 3),
+          flags: { isPhaseComplete: false, isWorkflowComplete: false },
+          celebration: phaseEntryCelebration || undefined
+        };
 
         const summary = `🔄 advance | ${workflow.name} | ${newPhase.name} (${this.deps.getCurrentPhase() + 1}/${workflow.phases.length})`;
-        return {
-          content: [
-            {
-              type: "text",
-              text: `${summary}\n\n` + JSON.stringify({
-                action: "advance",
-                previousPhase: previousPhase.name,
-                currentPhase: {
-                  name: newPhase.name,
-                  guidance: newPhase.guidance,
-                  number: this.deps.getCurrentPhase() + 1,
-                  total: workflow.phases.length
-                },
-                nextSteps: newPhase.suggestions.slice(0, 3),
-                celebration: phaseEntryCelebration || advancementMessage
-              }, null, 2)
-            }
-          ]
-        };
+        return createResponse(summary, advanceData, outputFormat, formatGuideAsText);
       } else {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "⚠️ advance | Already in final phase\n\n" + JSON.stringify({
-                action: "advance",
-                error: "Already in final phase",
-                currentPhase: {
-                  name: workflow.phases[this.deps.getCurrentPhase()].name,
-                  number: this.deps.getCurrentPhase() + 1,
-                  total: workflow.phases.length
-                },
-                suggestion: "Complete remaining steps or start new workflow with 'approach set <workflow>'"
-              }, null, 2)
-            }
-          ]
+        const errorData: GuideResponseData = {
+          action: "advance",
+          error: "Already in final phase",
+          suggestion: "Complete remaining steps or start new workflow with 'approach set <workflow>'",
+          workflow: { name: workflow.name, key: this.deps.getCurrentWorkflow() },
+          phase: {
+            name: workflow.phases[this.deps.getCurrentPhase()].name,
+            guidance: workflow.phases[this.deps.getCurrentPhase()].guidance,
+            number: this.deps.getCurrentPhase() + 1,
+            total: workflow.phases.length
+          },
+          progress: { completed: 0, total: 0, percentage: 0, remaining: 0 },
+          nextSteps: [],
+          flags: { isPhaseComplete: false, isWorkflowComplete: false }
         };
+        return createResponse("⚠️ advance | Already in final phase", errorData, outputFormat, formatGuideAsText);
       }
     }
 
@@ -336,7 +328,7 @@ export class GuideHandler {
     const summary = `${actionEmoji} ${action} | ${workflow.name} | ${currentPhase.name} (${this.deps.getCurrentPhase() + 1}/${workflow.phases.length}) | ${completedSteps}/${total} steps (${progressPercent}%)`;
 
     // Build structured data for agent consumption
-    const structuredData: any = {
+    const structuredData: GuideResponseData = {
       action,
       workflow: {
         name: workflow.name,
@@ -389,13 +381,6 @@ export class GuideHandler {
       structuredData.milestones = newMilestones;
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `${summary}\n\n${JSON.stringify(structuredData, null, 2)}`
-        }
-      ]
-    };
+    return createResponse(summary, structuredData, outputFormat, formatGuideAsText);
   }
 }

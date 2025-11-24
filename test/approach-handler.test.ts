@@ -12,7 +12,7 @@ import { ProgressTracker } from "../src/behavioral-adoption/progress-tracker";
 const TEST_SHERPA_HOME = path.join(os.tmpdir(), "sherpa-approach-handler-test");
 const TEST_WORKFLOWS_DIR = path.join(TEST_SHERPA_HOME, "workflows");
 
-// Helper function to parse structured response
+// Helper function to parse structured response (for JSON output format)
 function parseResponse(result: any): { summary: string; data: any } {
   const text = result.content[0].text;
   const parts = text.split("\n\n");
@@ -20,6 +20,11 @@ function parseResponse(result: any): { summary: string; data: any } {
   const jsonStr = parts.slice(1).join("\n\n");
   const data = JSON.parse(jsonStr);
   return { summary, data };
+}
+
+// Helper function to get raw text response (for text output format)
+function getTextResponse(result: any): string {
+  return result.content[0].text;
 }
 
 describe("ApproachHandler", () => {
@@ -143,8 +148,17 @@ describe("ApproachHandler", () => {
   });
 
   describe("Workflow Listing (set='list')", () => {
-    test("should list all available workflows with descriptions and hints", async () => {
+    test("should return lean text output by default", async () => {
       const result = await handler.handleApproach({ set: "list" });
+      const text = getTextResponse(result);
+
+      expect(text).toContain("Workflows (current: general):");
+      expect(text).toContain("tdd - Test-Driven Development");
+      expect(text).toContain("bug-hunt - Bug Hunt");
+    });
+
+    test("should list all available workflows with descriptions and hints in JSON format", async () => {
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(result.content).toHaveLength(1);
@@ -161,7 +175,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should show current workflow", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(summary).toContain("current: general");
@@ -169,7 +183,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should include progress stats when workflows completed", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.stats.workflowsCompleted).toBe(5);
@@ -177,7 +191,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should include personalized tips", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.tips).toContain("Try the TDD workflow for new features");
@@ -185,14 +199,14 @@ describe("ApproachHandler", () => {
     });
 
     test("should include workflow selection motivation", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.motivation).toBe("🎯 Choose wisely for maximum impact!");
     });
 
     test("should include next action guidance", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       // Structured format includes all data needed, no specific prose required
@@ -208,8 +222,18 @@ describe("ApproachHandler", () => {
   });
 
   describe("Workflow Switching", () => {
-    test("should switch to valid workflow successfully", async () => {
+    test("should return lean text output by default when switching", async () => {
       const result = await handler.handleApproach({ set: "tdd" });
+      const text = getTextResponse(result);
+
+      expect(text).toContain("→ general → tdd");
+      expect(text).toContain("Test-Driven Development");
+      expect(text).toContain("Phase 1:");
+      expect(text).toContain("Start with:");
+    });
+
+    test("should switch to valid workflow successfully in JSON format", async () => {
+      const result = await handler.handleApproach({ set: "tdd", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(mockDeps.setCurrentWorkflow).toHaveBeenCalledWith("tdd");
@@ -226,7 +250,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should handle switching to same workflow", async () => {
-      const result = await handler.handleApproach({ set: "general" });
+      const result = await handler.handleApproach({ set: "general", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(summary).toContain("🎯 set");
@@ -249,7 +273,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should include first phase suggestions", async () => {
-      const result = await handler.handleApproach({ set: "tdd" });
+      const result = await handler.handleApproach({ set: "tdd", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.firstPhase.firstSteps).toContain("Create test file");
@@ -258,14 +282,14 @@ describe("ApproachHandler", () => {
     });
 
     test("should include success story inspiration", async () => {
-      const result = await handler.handleApproach({ set: "tdd" });
+      const result = await handler.handleApproach({ set: "tdd", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.inspiration).toBe("Companies using systematic workflows ship 2x faster!");
     });
 
     test("should include next action guidance for new workflow", async () => {
-      const result = await handler.handleApproach({ set: "tdd" });
+      const result = await handler.handleApproach({ set: "tdd", output_format: "json" });
       const { data } = parseResponse(result);
 
       // Structured format includes all workflow data
@@ -275,8 +299,17 @@ describe("ApproachHandler", () => {
   });
 
   describe("Error Handling", () => {
-    test("should handle invalid workflow name", async () => {
+    test("should return lean text error by default", async () => {
       const result = await handler.handleApproach({ set: "nonexistent" });
+      const text = getTextResponse(result);
+
+      expect(text).toContain("error: Workflow not found");
+      expect(text).toContain("requested: nonexistent");
+      expect(text).toContain("Available:");
+    });
+
+    test("should handle invalid workflow name in JSON format", async () => {
+      const result = await handler.handleApproach({ set: "nonexistent", output_format: "json" });
       const { summary, data } = parseResponse(result);
 
       expect(summary).toContain("❌ set");
@@ -288,7 +321,7 @@ describe("ApproachHandler", () => {
     });
 
     test("should handle empty args gracefully", async () => {
-      const result = await handler.handleApproach({});
+      const result = await handler.handleApproach({ output_format: "json" });
       const { data } = parseResponse(result);
 
       // Should default to "list"
@@ -298,10 +331,10 @@ describe("ApproachHandler", () => {
 
     test("should handle null args gracefully", async () => {
       const result = await handler.handleApproach(null);
-      const { data } = parseResponse(result);
+      const text = getTextResponse(result);
 
-      expect(data.action).toBe("list");
-      expect(data.workflows).toBeDefined();
+      // Should default to "list" with text output
+      expect(text).toContain("Workflows");
     });
   });
 
@@ -326,7 +359,7 @@ describe("ApproachHandler", () => {
         "You work well with structured approaches"
       ]);
 
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.insights).toContain("Based on your patterns, try TDD for new features");
@@ -336,7 +369,7 @@ describe("ApproachHandler", () => {
     test("should handle missing personalized suggestions gracefully", async () => {
       mockLearningEngine.getPersonalizedSuggestions = mock(() => []);
 
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.insights).toBeUndefined();
@@ -345,7 +378,7 @@ describe("ApproachHandler", () => {
 
   describe("Workflow Details Display", () => {
     test("should show workflow description", async () => {
-      const result = await handler.handleApproach({ set: "bug-hunt" });
+      const result = await handler.handleApproach({ set: "bug-hunt", output_format: "json" });
       const { data } = parseResponse(result);
 
       expect(data.currentWorkflow.description).toBe("Systematic debugging and issue resolution");
@@ -354,7 +387,7 @@ describe("ApproachHandler", () => {
 
 
     test("should show trigger hints in listing", async () => {
-      const result = await handler.handleApproach({ set: "list" });
+      const result = await handler.handleApproach({ set: "list", output_format: "json" });
       const { data } = parseResponse(result);
 
       const tdd = data.workflows.find((w: any) => w.key === "tdd");
