@@ -5,6 +5,8 @@
  * Text output is optimized for token efficiency and AI readability.
  */
 
+import { Milestone } from "../behavioral-adoption/progress-tracker";
+
 export type OutputFormat = "text" | "json";
 
 /**
@@ -45,7 +47,7 @@ export interface GuideResponseData {
   encouragement?: string;
   workflowCompletion?: string;
   inspiration?: string;
-  milestones?: any[];
+  milestones?: Milestone[];
   // For advance action
   previousPhase?: string;
   currentPhase?: {
@@ -308,11 +310,11 @@ export function formatApproachAsText(data: ApproachResponseData): string {
 /**
  * Helper to create MCP response with format handling
  */
-export function createResponse(
+export function createResponse<T>(
   summary: string,
-  data: any,
+  data: T,
   outputFormat: OutputFormat = "text",
-  textFormatter: (data: any) => string
+  textFormatter: (data: T) => string
 ): { content: { type: string; text: string }[] } {
   if (outputFormat === "json") {
     // Backward compatible: summary + JSON

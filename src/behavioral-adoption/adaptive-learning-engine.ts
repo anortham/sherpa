@@ -11,6 +11,14 @@ import {
   LearningSession
 } from "../types";
 
+// Timing constants
+/** Milliseconds of inactivity before user is considered "stuck" (5 minutes) */
+const STUCK_THRESHOLD_MS = 300000;
+/** Minimum milliseconds between generating hints (30 seconds) */
+const HINT_COOLDOWN_MS = 30000;
+/** Number of recent actions to include in context */
+const RECENT_ACTIONS_COUNT = 10;
+
 export class AdaptiveLearningEngine {
   private userProfile: UserProfile;
   private currentSession: LearningSession;
@@ -79,11 +87,11 @@ export class AdaptiveLearningEngine {
   }
 
   private generateUserId(): string {
-    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   async loadUserProfile(): Promise<void> {
@@ -327,14 +335,24 @@ export class AdaptiveLearningEngine {
     }
   }
 
-  recordToolUsage(toolName: string, args: any): void {
-    this.lastActionTime = new Date();
-    this.actionHistory.push(`${toolName}:${JSON.stringify(args)}`);
+  private static readonly MAX_ACTION_HISTORY = 50;
+  private static readonly MAX_ACTION_ITEM_LENGTH = 1000;
 
-    // Keep only last 50 actions
-    if (this.actionHistory.length > 50) {
-      this.actionHistory = this.actionHistory.slice(-50);
+  recordToolUsage(toolName: string, args: Record<string, unknown>): void {
+    this.lastActionTime = new Date();
+
+    // Truncate args JSON to prevent memory issues with huge contexts
+    let argsJson = JSON.stringify(args);
+    if (argsJson.length > AdaptiveLearningEngine.MAX_ACTION_ITEM_LENGTH) {
+      argsJson = argsJson.slice(0, AdaptiveLearningEngine.MAX_ACTION_ITEM_LENGTH) + '...';
     }
+
+    // Atomic update: keep last (MAX - 1) items and add new one
+    // This avoids race condition between push and conditional slice
+    this.actionHistory = [
+      ...this.actionHistory.slice(-(AdaptiveLearningEngine.MAX_ACTION_HISTORY - 1)),
+      `${toolName}:${argsJson}`
+    ];
 
     // Update metrics
     this.userProfile.behaviorMetrics.toolUsageFrequency[toolName] =
@@ -347,7 +365,7 @@ export class AdaptiveLearningEngine {
 
     // Track workflow usage when approach tool sets workflow
     if (toolName === 'approach' && args.set) {
-      this.recordWorkflowUsage(args.set);
+      this.recordWorkflowUsage(args.set as string);
     }
   }
 
@@ -458,8 +476,8 @@ export class AdaptiveLearningEngine {
     const timeInPhase = now.getTime() - this.lastActionTime.getTime();
     const workingTime = now.getTime() - this.sessionStartTime.getTime();
 
-    // Determine if user might be stuck (no action for 5+ minutes)
-    const isStuck = timeInPhase > 300000; // 5 minutes
+    // Determine if user might be stuck (no action for configured threshold)
+    const isStuck = timeInPhase > STUCK_THRESHOLD_MS;
 
     // Calculate confidence based on historical data
     const workflowPattern = this.userProfile.workflowPatterns.find(wp => wp.workflowType === currentWorkflow);
@@ -469,7 +487,7 @@ export class AdaptiveLearningEngine {
       currentWorkflow,
       currentPhase,
       timeInPhase,
-      recentActions: this.actionHistory.slice(-10),
+      recentActions: this.actionHistory.slice(-RECENT_ACTIONS_COUNT),
       userBehaviorProfile: this.userProfile.behaviorMetrics,
       sessionContext: sessionContext || '',
       workingTime,
@@ -479,9 +497,9 @@ export class AdaptiveLearningEngine {
   }
 
   generateAdaptiveHint(context: PredictiveContext): AdaptiveHint | null {
-    // Don't generate hints too frequently (30 second cooldown)
+    // Don't generate hints too frequently
     const timeSinceLastHint = new Date().getTime() - this.lastActionTime.getTime();
-    if (timeSinceLastHint < 30000) {
+    if (timeSinceLastHint < HINT_COOLDOWN_MS) {
       return null;
     }
 

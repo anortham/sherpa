@@ -3,13 +3,15 @@
  * Contains semantic analysis to determine when workflow phases are complete
  */
 
+import { WorkflowPhase } from "../types";
+
 export class PhaseCompletionDetector {
   /**
    * Determines if a phase is semantically complete based on workflow type and progress
    */
   static isPhaseSemanticallComplete(
     workflowType: string,
-    phase: any,
+    phase: WorkflowPhase,
     progress: string[],
     completed?: string
   ): boolean {
@@ -71,7 +73,7 @@ export class PhaseCompletionDetector {
    */
   static isPhaseComplete(
     workflowType: string,
-    phase: any,
+    phase: WorkflowPhase,
     progress: string[],
     completed?: string
   ): boolean {

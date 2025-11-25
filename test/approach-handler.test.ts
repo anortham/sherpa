@@ -217,7 +217,10 @@ describe("ApproachHandler", () => {
     test("should record tool usage for learning", async () => {
       await handler.handleApproach({ set: "list" });
 
-      expect(mockLearningEngine.recordToolUsage).toHaveBeenCalledWith("approach", { set: "list" });
+      expect(mockLearningEngine.recordToolUsage).toHaveBeenCalledWith(
+        "approach",
+        expect.objectContaining({ set: "list" })
+      );
     });
   });
 

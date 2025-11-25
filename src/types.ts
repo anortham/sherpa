@@ -133,3 +133,27 @@ export interface WorkflowState {
   lastUpdated: Date;
   sessionStartTime: Date;
 }
+
+// Tool argument types for type-safe handlers
+export type GuideAction = "check" | "done" | "tdd" | "bug" | "next" | "advance";
+export type OutputFormatType = "text" | "json";
+
+export interface GuideArgs {
+  action?: GuideAction;
+  completed?: string;
+  context?: string;
+  output_format?: OutputFormatType;
+}
+
+export interface ApproachArgs {
+  set?: string;
+  output_format?: OutputFormatType;
+}
+
+// Validation constants
+export const VALID_GUIDE_ACTIONS: ReadonlySet<GuideAction> = new Set([
+  "check", "done", "tdd", "bug", "next", "advance"
+]);
+
+export const MAX_CONTEXT_LENGTH = 10000;
+export const MAX_COMPLETED_LENGTH = 2000;

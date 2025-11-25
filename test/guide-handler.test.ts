@@ -245,7 +245,10 @@ describe("GuideHandler", () => {
     test("should record tool usage for learning", async () => {
       await handler.handleGuide({ action: "check" });
 
-      expect(mockLearningEngine.recordToolUsage).toHaveBeenCalledWith("guide", { action: "check" });
+      expect(mockLearningEngine.recordToolUsage).toHaveBeenCalledWith(
+        "guide",
+        expect.objectContaining({ action: "check" })
+      );
     });
 
     test("should include adaptive hints when available", async () => {

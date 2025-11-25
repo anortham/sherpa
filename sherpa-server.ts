@@ -52,6 +52,7 @@ import { getBaseInstructions } from "./src/instruction-builder/base-instructions
 import { getToolDescription } from "./src/instruction-builder/tool-descriptions";
 import { GuideHandler, GuideHandlerDependencies } from "./src/handlers/GuideHandler";
 import { ApproachHandler, ApproachHandlerDependencies } from "./src/handlers/ApproachHandler";
+import { validateWorkflow, formatValidationErrors } from "./src/workflow/workflow-validator";
 
 // Types moved to src/types.ts
 
@@ -97,7 +98,8 @@ export class SherpaServer {
     this.stateCoordinator = new StateCoordinator(
       this.workflowStateManager,
       this.progressTracker,
-      this.learningEngine
+      this.learningEngine,
+      (level, message) => this.log(level, message)
     );
 
     // Initialize tool handlers
@@ -236,12 +238,20 @@ export class SherpaServer {
       for (const file of yamlFiles) {
         try {
           const content = await fs.readFile(path.join(workflowsDir, file), 'utf-8');
-          const workflow = yaml.parse(content) as Workflow;
+          const parsed = yaml.parse(content);
           const key = path.basename(file, path.extname(file));
-          this.workflows.set(key, workflow);
-          this.log("INFO", `Loaded workflow: ${key} - ${workflow.name}`);
+
+          // Validate workflow structure
+          const validation = validateWorkflow(parsed, file);
+          if (!validation.valid) {
+            this.log("WARN", `Invalid workflow ${file}:\n${formatValidationErrors(validation.errors)}`);
+            continue;
+          }
+
+          this.workflows.set(key, validation.workflow!);
+          this.log("INFO", `Loaded workflow: ${key} - ${validation.workflow!.name}`);
         } catch (error) {
-          this.log("WARN", `Skipping invalid workflow file ${file}: ${error}`);
+          this.log("WARN", `Skipping workflow file ${file} (YAML parse error): ${error}`);
         }
       }
 

@@ -2,6 +2,9 @@ import { WorkflowStateManager } from '../workflow/workflow-state-manager';
 import { ProgressTracker } from '../behavioral-adoption/progress-tracker';
 import { AdaptiveLearningEngine } from '../behavioral-adoption/adaptive-learning-engine';
 
+/** Type for log function passed from server */
+type LogFunction = (level: string, message: string) => void;
+
 /**
  * Coordinates state persistence across all Sherpa systems
  * Ensures atomic saves and consistent state across restarts
@@ -10,18 +13,22 @@ export class StateCoordinator {
   constructor(
     private workflowStateManager: WorkflowStateManager,
     private progressTracker: ProgressTracker,
-    private learningEngine: AdaptiveLearningEngine
+    private learningEngine: AdaptiveLearningEngine,
+    private log?: LogFunction
   ) {}
 
   /**
-   * Save all state systems atomically
+   * Save all state systems
    * Uses Promise.allSettled to ensure all saves attempt even if one fails
+   * Logs errors for debugging and returns summary
    */
   async saveAll(
     currentWorkflow: string,
     currentPhase: number,
     phaseProgress: Map<string, string[]>
   ): Promise<{ success: boolean; errors: string[] }> {
+    const systemNames = ['WorkflowStateManager', 'ProgressTracker', 'AdaptiveLearningEngine'];
+
     const results = await Promise.allSettled([
       this.workflowStateManager.saveWorkflowState(currentWorkflow, currentPhase, phaseProgress),
       this.progressTracker.saveState(),
@@ -31,10 +38,16 @@ export class StateCoordinator {
     const errors: string[] = [];
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        const systemNames = ['WorkflowStateManager', 'ProgressTracker', 'AdaptiveLearningEngine'];
-        errors.push(`${systemNames[index]}: ${result.reason}`);
+        const errorMsg = `${systemNames[index]}: ${result.reason}`;
+        errors.push(errorMsg);
+        // Log each error for debugging
+        this.log?.('WARN', `State save failed - ${errorMsg}`);
       }
     });
+
+    if (errors.length > 0) {
+      this.log?.('WARN', `State save completed with ${errors.length} error(s) out of ${systemNames.length} systems`);
+    }
 
     return {
       success: errors.length === 0,

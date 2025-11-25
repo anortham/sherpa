@@ -1,9 +1,11 @@
-import { Workflow } from "../types";
+import { Workflow, ApproachArgs } from "../types";
 import { AdaptiveLearningEngine } from "../behavioral-adoption/adaptive-learning-engine";
 import { CelebrationGenerator } from "../behavioral-adoption/celebration-generator";
 import { ProgressTracker } from "../behavioral-adoption/progress-tracker";
 import { WorkflowDetector } from "../workflow/workflow-detector";
 import { OutputFormat, ApproachListData, ApproachSetData, ApproachErrorData, formatApproachAsText, createResponse } from "../output/formatters";
+
+const MAX_WORKFLOW_KEY_LENGTH = 100;
 
 export interface ApproachHandlerDependencies {
   workflows: Map<string, Workflow>;
@@ -21,13 +23,50 @@ export interface ApproachHandlerDependencies {
 export class ApproachHandler {
   constructor(private deps: ApproachHandlerDependencies) {}
 
-  async handleApproach(args: any) {
-    const safeArgs = args ?? {};
-    const set = safeArgs.set ?? "list";
-    const outputFormat: OutputFormat = safeArgs.output_format ?? "text";
+  /**
+   * Validates and normalizes approach arguments
+   */
+  private validateArgs(args: unknown): { valid: true; args: ApproachArgs } | { valid: false; error: string } {
+    const safeArgs = (args && typeof args === 'object' ? args : {}) as Record<string, unknown>;
+
+    // Validate set parameter length
+    const set = (safeArgs.set as string) ?? "list";
+    if (set.length > MAX_WORKFLOW_KEY_LENGTH) {
+      return { valid: false, error: `Workflow key too long (${set.length} chars). Maximum: ${MAX_WORKFLOW_KEY_LENGTH}` };
+    }
+
+    // Validate output_format
+    const outputFormat = (safeArgs.output_format as string) ?? "text";
+    if (outputFormat !== "text" && outputFormat !== "json") {
+      return { valid: false, error: `Invalid output_format: ${outputFormat}. Valid formats: text, json` };
+    }
+
+    return {
+      valid: true,
+      args: {
+        set,
+        output_format: outputFormat as "text" | "json"
+      }
+    };
+  }
+
+  async handleApproach(args: unknown): Promise<{ content: { type: string; text: string }[] }> {
+    // Validate input
+    const validation = this.validateArgs(args);
+    if (!validation.valid) {
+      const errorData: ApproachErrorData = {
+        action: "set",
+        error: validation.error,
+        requested: "",
+        available: Array.from(this.deps.workflows.keys())
+      };
+      return createResponse(`❌ error | ${validation.error}`, errorData, "text", formatApproachAsText);
+    }
+
+    const { set, output_format: outputFormat } = validation.args;
 
     // Record tool usage for learning
-    this.deps.learningEngine.recordToolUsage("approach", safeArgs);
+    this.deps.learningEngine.recordToolUsage("approach", validation.args);
 
     if (set === "list") {
       const workflowList = Array.from(this.deps.workflows.entries()).map(([key, wf]) => ({

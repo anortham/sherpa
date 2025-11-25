@@ -2,6 +2,16 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
+// Configuration constants
+/** Number of consecutive days required for the "consistent usage" milestone */
+const STREAK_DAYS_FOR_MILESTONE = 7;
+/** Average minutes per workflow threshold for "efficiency master" milestone */
+const EFFICIENCY_THRESHOLD_MINUTES = 30;
+/** Required workflow types for "workflow diversity" milestone */
+const REQUIRED_WORKFLOW_TYPES = ["tdd", "bug-hunt", "general", "rapid", "refactor"];
+/** Minimum workflows for "rapid adoption" milestone */
+const RAPID_ADOPTION_THRESHOLD = 3;
+
 export interface ProgressStats {
   totalWorkflowsCompleted: number;
   totalStepsCompleted: number;
@@ -196,7 +206,9 @@ export class ProgressTracker {
     const milestones = this.checkMilestones();
 
     // Save state asynchronously (don't await to avoid blocking)
-    this.saveState().catch(() => {});
+    this.saveState().catch((error) => {
+      this.logToFile(`Failed to save after step completion: ${error}`).catch(() => {});
+    });
 
     return milestones;
   }
@@ -215,7 +227,9 @@ export class ProgressTracker {
     const milestones = this.checkMilestones();
 
     // Save state asynchronously (don't await to avoid blocking)
-    this.saveState().catch(() => {});
+    this.saveState().catch((error) => {
+      this.logToFile(`Failed to save after workflow completion: ${error}`).catch(() => {});
+    });
 
     return milestones;
   }
@@ -275,22 +289,21 @@ export class ProgressTracker {
 
       case "consistent_usage":
         // Check if they've used workflows for several days in a row
-        return this.stats.currentStreak >= 7;
+        return this.stats.currentStreak >= STREAK_DAYS_FOR_MILESTONE;
 
       case "workflow_diversity":
-        // Check if they've used all 5 main workflow types
+        // Check if they've used all main workflow types
         const workflowTypes = Object.keys(this.stats.workflowTypeUsage);
-        const requiredTypes = ["tdd", "bug-hunt", "general", "rapid", "refactor"];
-        return requiredTypes.every(type => workflowTypes.includes(type));
+        return REQUIRED_WORKFLOW_TYPES.every(type => workflowTypes.includes(type));
 
       case "rapid_adoption":
         // This would need session tracking - simplified for now
-        return this.stats.totalWorkflowsCompleted >= 3;
+        return this.stats.totalWorkflowsCompleted >= RAPID_ADOPTION_THRESHOLD;
 
       case "efficiency_master":
         // Check if average time per workflow is better than baseline
         return this.stats.averageStepsPerWorkflow > 0 &&
-               this.stats.timeSpentInWorkflows / this.stats.totalWorkflowsCompleted < 30; // 30 min average
+               this.stats.timeSpentInWorkflows / this.stats.totalWorkflowsCompleted < EFFICIENCY_THRESHOLD_MINUTES;
 
       default:
         return false;
@@ -384,6 +397,8 @@ export class ProgressTracker {
     });
 
     // Save reset state
-    this.saveState().catch(() => {});
+    this.saveState().catch((error) => {
+      this.logToFile(`Failed to save after stats reset: ${error}`).catch(() => {});
+    });
   }
 }

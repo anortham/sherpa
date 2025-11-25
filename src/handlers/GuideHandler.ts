@@ -1,11 +1,25 @@
-import { AdaptiveHint, Workflow } from "../types";
+import { AdaptiveHint, Workflow, WorkflowPhase, GuideArgs, GuideAction, VALID_GUIDE_ACTIONS, MAX_CONTEXT_LENGTH, MAX_COMPLETED_LENGTH } from "../types";
 import { AdaptiveLearningEngine } from "../behavioral-adoption/adaptive-learning-engine";
 import { CelebrationGenerator } from "../behavioral-adoption/celebration-generator";
 import { ProgressTracker } from "../behavioral-adoption/progress-tracker";
+import { Milestone } from "../behavioral-adoption/progress-tracker";
 import { PhaseCompletionDetector } from "../workflow/phase-completion";
 import { ProgressDisplay } from "../workflow/progress-display";
 import { WorkflowDetector } from "../workflow/workflow-detector";
 import { OutputFormat, GuideResponseData, formatGuideAsText, createResponse } from "../output/formatters";
+
+// Configuration constants
+/** Probability of showing a success story for inspiration (0-1) */
+const SUCCESS_STORY_PROBABILITY = 0.3;
+/** Default estimated minutes per workflow (for completion tracking) */
+const DEFAULT_WORKFLOW_DURATION_MINUTES = 30;
+
+export interface ProgressInfo {
+  completed: number;
+  total: number;
+  percentage: number;
+  remaining: number;
+}
 
 export interface GuideHandlerDependencies {
   workflows: Map<string, Workflow>;
@@ -25,21 +39,73 @@ export interface GuideHandlerDependencies {
   getWorkflowProgress: () => { completed: number; total: number };
   getTotalCompletedSteps: (workflow: Workflow) => number;
   formatAdaptiveHint: (hint: AdaptiveHint) => string;
-  generateProgressSummary: (progress: any, justCompletedPhase: boolean, justMarkedDone: boolean) => string;
+  generateProgressSummary: (progress: ProgressInfo, justCompletedPhase: boolean, justMarkedDone: boolean) => string;
 }
 
 export class GuideHandler {
   constructor(private deps: GuideHandlerDependencies) {}
 
-  async handleGuide(args: any): Promise<{ content: { type: string; text: string }[] }> {
-    const safeArgs = args ?? {};
-    const action = safeArgs.action ?? "check";
-    const completed = safeArgs.completed;
-    const context = safeArgs.context;
-    const outputFormat: OutputFormat = safeArgs.output_format ?? "text";
+  /**
+   * Validates and normalizes guide arguments
+   */
+  private validateArgs(args: unknown): { valid: true; args: GuideArgs } | { valid: false; error: string } {
+    const safeArgs = (args && typeof args === 'object' ? args : {}) as Record<string, unknown>;
+
+    // Validate action
+    const action = (safeArgs.action as string) ?? "check";
+    if (!VALID_GUIDE_ACTIONS.has(action as GuideAction)) {
+      return { valid: false, error: `Invalid action: ${action}. Valid actions: ${Array.from(VALID_GUIDE_ACTIONS).join(", ")}` };
+    }
+
+    // Validate context length
+    const context = safeArgs.context as string | undefined;
+    if (context && context.length > MAX_CONTEXT_LENGTH) {
+      return { valid: false, error: `Context too long (${context.length} chars). Maximum: ${MAX_CONTEXT_LENGTH}` };
+    }
+
+    // Validate completed length
+    const completed = safeArgs.completed as string | undefined;
+    if (completed && completed.length > MAX_COMPLETED_LENGTH) {
+      return { valid: false, error: `Completed description too long (${completed.length} chars). Maximum: ${MAX_COMPLETED_LENGTH}` };
+    }
+
+    // Validate output_format
+    const outputFormat = (safeArgs.output_format as string) ?? "text";
+    if (outputFormat !== "text" && outputFormat !== "json") {
+      return { valid: false, error: `Invalid output_format: ${outputFormat}. Valid formats: text, json` };
+    }
+
+    return {
+      valid: true,
+      args: {
+        action: action as GuideAction,
+        completed,
+        context,
+        output_format: outputFormat as "text" | "json"
+      }
+    };
+  }
+
+  async handleGuide(args: unknown): Promise<{ content: { type: string; text: string }[] }> {
+    // Validate input
+    const validation = this.validateArgs(args);
+    if (!validation.valid) {
+      const errorData: GuideResponseData = {
+        action: "check",
+        error: validation.error,
+        workflow: { name: "", key: "" },
+        phase: { name: "", guidance: "", number: 0, total: 0 },
+        progress: { completed: 0, total: 0, percentage: 0, remaining: 0 },
+        nextSteps: [],
+        flags: { isPhaseComplete: false, isWorkflowComplete: false }
+      };
+      return createResponse(`❌ error | ${validation.error}`, errorData, "text", formatGuideAsText);
+    }
+
+    const { action, completed, context, output_format: outputFormat } = validation.args;
 
     // Record tool usage for learning
-    this.deps.learningEngine.recordToolUsage("guide", safeArgs);
+    this.deps.learningEngine.recordToolUsage("guide", validation.args);
 
     // Get workflow early so advance action can use it
     const workflow = this.deps.workflows.get(this.deps.getCurrentWorkflow());
@@ -172,7 +238,7 @@ export class GuideHandler {
 
     // Handle step completion with enhanced celebration
     let celebrationMessage = "";
-    let newMilestones: any[] = [];
+    let newMilestones: Milestone[] = [];
 
     if (action === "done" && completed) {
       await this.deps.recordProgress(completed);
@@ -249,7 +315,22 @@ export class GuideHandler {
     // Show all suggestions - users can track progress by count rather than exact matches
     const currentRemaining = currentPhase.suggestions;
 
-    let response: any = {
+    // Build response object with optional celebration fields
+    interface IntermediateResponse {
+      workflow: string;
+      phase: string;
+      guidance: string;
+      suggestions: string[];
+      phase_number: string;
+      progress: ProgressInfo;
+      celebration?: string;
+      tool_encouragement?: string;
+      progress_encouragement?: string;
+      success_inspiration?: string;
+      workflow_completion?: string;
+    }
+
+    const response: IntermediateResponse = {
       workflow: workflow.name,
       phase: currentPhase.name,
       guidance: currentPhase.guidance,
@@ -280,9 +361,9 @@ export class GuideHandler {
       response.progress_encouragement = progressEncouragement;
     }
 
-    // Add success story context
+    // Add success story context (shown occasionally for inspiration)
     const successStory = this.deps.celebrationGenerator.generateSuccessStory(this.deps.getCurrentWorkflow());
-    if (successStory && Math.random() < 0.3) { // Show occasionally for inspiration
+    if (successStory && Math.random() < SUCCESS_STORY_PROBABILITY) {
       response.success_inspiration = successStory;
     }
 
@@ -292,7 +373,7 @@ export class GuideHandler {
       const completionMilestones = this.deps.progressTracker.recordWorkflowCompletion(
         this.deps.getCurrentWorkflow(),
         totalStepsCompleted,
-        30 // Estimate 30 minutes - could be enhanced with actual timing
+        DEFAULT_WORKFLOW_DURATION_MINUTES // Could be enhanced with actual timing
       );
       if (completionMilestones.length > 0) {
         newMilestones = [...newMilestones, ...completionMilestones];
@@ -312,7 +393,7 @@ export class GuideHandler {
       // Record completion with learning engine for adaptive insights
       this.deps.learningEngine.recordWorkflowCompletion(
         this.deps.getCurrentWorkflow(),
-        30, // Duration in minutes
+        DEFAULT_WORKFLOW_DURATION_MINUTES,
         true // Success
       );
 
